@@ -1,6 +1,6 @@
 import Foundation
 
-struct MeetingRecord: Identifiable, Codable {
+struct MeetingRecord: Identifiable, Codable, Equatable {
     let id: UUID
     let startTime: Date
     let endTime: Date?

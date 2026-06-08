@@ -12,7 +12,7 @@ xcuserdata/
 
 # XcodeGen (generated locally from project.yml)
 *.xcodeproj
-MeetRecorder/MeetRecorder.entitlements
+MeetRecorder/*.entitlements
 
 # API Keys / Secrets
 .env

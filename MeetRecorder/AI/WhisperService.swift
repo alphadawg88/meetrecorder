@@ -1,6 +1,6 @@
 import Foundation
 
-actor WhisperService {
+actor WhisperService: Transcriber {
     private let endpoint = URL(string: "https://api.openai.com/v1/audio/transcriptions")!
 
     func transcribe(audioURL: URL) async throws -> String {

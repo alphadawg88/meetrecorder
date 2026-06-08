@@ -1,6 +1,6 @@
 import Foundation
 
-actor ClaudeService {
+actor ClaudeService: Summarizer {
     private let endpoint = URL(string: "https://api.anthropic.com/v1/messages")!
 
     func process(transcript: String, targetLanguage: String, meetingTitle: String) async throws -> AIOutput {
@@ -11,41 +11,12 @@ actor ClaudeService {
         request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
         request.setValue(anthropicKey, forHTTPHeaderField: "x-api-key")
 
-        let languageInstruction = targetLanguage == "zh"
-            ? "Use Traditional Chinese for Cantonese context, Simplified Chinese for Mandarin context."
-            : "Use English."
-
-        let systemPrompt = """
-You are a world-class executive assistant specializing in meeting intelligence.
-Analyze the meeting transcript and produce structured JSON.
-
-Rules:
-1. The transcript may contain English, Cantonese, and/or Mandarin. Detect languages automatically.
-2. Translate and summarize into \(targetLanguage) (\(languageInstruction)).
-3. Identify clear action items with owners if mentioned.
-4. Output ONLY valid JSON with no markdown formatting.
-
-Output schema:
-{
-  "executive_summary": "2-3 sentence summary",
-  "key_takeaways": ["bullet 1", "bullet 2"],
-  "action_items": [{"task": "...", "owner": "...", "due_date": "..."}],
-  "detailed_notes": "Comprehensive notes by topic",
-  "translated_transcript": "Full transcript translated to \(targetLanguage)"
-}
-"""
-
         let payload: [String: Any] = [
-            "model": "claude-sonnet-4-20250514",
+            "model": "claude-sonnet-4-6",
             "max_tokens": 8192,
-            "system": systemPrompt,
+            "system": SummaryPrompt.system(targetLanguage: targetLanguage),
             "messages": [
-                ["role": "user", "content": """
-Meeting Title: \(meetingTitle)
-
-Transcript:
-\(transcript)
-"""]
+                ["role": "user", "content": SummaryPrompt.user(meetingTitle: meetingTitle, transcript: transcript)]
             ]
         ]
 
@@ -64,15 +35,7 @@ Transcript:
             throw ClaudeError.parseError
         }
 
-        let cleanJSON = text
-            .replacingOccurrences(of: "```json", with: "")
-            .replacingOccurrences(of: "```", with: "")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-
-        let outputData = cleanJSON.data(using: .utf8)!
-        let decoder = JSONDecoder()
-        decoder.keyDecodingStrategy = .convertFromSnakeCase
-        return try decoder.decode(AIOutput.self, from: outputData)
+        return try AIOutput.parse(from: text)
     }
 }
 

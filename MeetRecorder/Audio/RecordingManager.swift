@@ -1,6 +1,18 @@
 import AVFoundation
 import Combine
 
+/// The single thing the popover is doing right now. Drives the state-first UI.
+enum RecordingPhase: Equatable {
+    case idle
+    case recording(MeetingRecord)
+    case processing(String)   // localized stage label
+
+    var isRecording: Bool {
+        if case .recording = self { return true }
+        return false
+    }
+}
+
 @MainActor
 final class RecordingManager: ObservableObject {
     @Published var isRecording = false
@@ -10,8 +22,8 @@ final class RecordingManager: ObservableObject {
 
     private let micCapture = MicrophoneCapture()
     private let systemCapture = SystemAudioCapture()
-    private let whisperService = WhisperService()
-    private let claudeService = ClaudeService()
+    private let whisperService: Transcriber = WhisperService()
+    private let claudeService: Summarizer = ClaudeService()
     private let exporter = MarkdownExporter()
     private let settings = SettingsStore.shared
     private var cancellables = Set<AnyCancellable>()
@@ -27,6 +39,17 @@ final class RecordingManager: ObservableObject {
 
     func inject(calendarManager: CalendarManager) {
         self.calendarManager = calendarManager
+    }
+
+    /// Derived UI state. Recording wins; otherwise an active processing stage; otherwise idle.
+    var phase: RecordingPhase {
+        if isRecording, let record = currentRecord {
+            return .recording(record)
+        }
+        if !processingStage.isEmpty {
+            return .processing(processingStage)
+        }
+        return .idle
     }
 
     func toggleRecording() {
@@ -177,7 +200,7 @@ final class RecordingManager: ObservableObject {
                 records.insert(record, at: 0)
                 currentRecord = nil
             }
-            NotificationManager.notify(title: "MeetRecorder Error", body: "\(context): \(error.localizedDescription)")
+            NotificationManager.notify(title: "Glyph Error", body: "\(context): \(error.localizedDescription)")
         }
     }
 
