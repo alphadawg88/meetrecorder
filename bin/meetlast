@@ -1,0 +1,45 @@
+#!/usr/bin/env python3
+"""Transcribe the most recent recording in ~/Desktop/recordings/"""
+import os, sys, subprocess, glob
+
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
+
+def main():
+    model = "base"
+    args = sys.argv[1:]
+    i = 0
+    while i < len(args):
+        if args[i] == "--model" and i + 1 < len(args):
+            model = args[i + 1]
+            i += 2
+        else:
+            i += 1
+
+    out_dir = os.path.expanduser("~/Desktop/recordings")
+    # Look for combined files first, then legacy single files
+    combined = sorted(glob.glob(os.path.join(out_dir, "*_combined.wav")), key=os.path.getmtime, reverse=True)
+    legacy = sorted(glob.glob(os.path.join(out_dir, "*.wav")), key=os.path.getmtime, reverse=True)
+    # Filter legacy to exclude _mic, _system, _combined suffixes
+    legacy = [f for f in legacy if not any(s in os.path.basename(f) for s in ["_mic.wav", "_system.wav", "_combined.wav"])]
+
+    target = None
+    if combined:
+        target = combined[0]
+    elif legacy:
+        target = legacy[0]
+
+    if not target:
+        print("No recordings found in ~/Desktop/recordings/")
+        sys.exit(1)
+
+    print(f"Transcribing: {target}")
+    subprocess.run([
+        sys.executable,
+        os.path.join(PROJECT_ROOT, "src/python/mac-transcribe.py"),
+        target,
+        "--model", model
+    ])
+
+if __name__ == "__main__":
+    main()
