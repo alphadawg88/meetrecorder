@@ -1,130 +1,100 @@
 # MeetRecorder
 
-A macOS meeting recorder that captures both microphone and system audio (e.g. Zoom/Teams/Meet calls) simultaneously, then transcribes locally with OpenAI Whisper. No cloud APIs, no ffmpeg, no BlackHole.
+A lightweight native macOS menu bar app that records system and microphone audio during meetings, transcribes multi-lingual speech (English, Cantonese, Mandarin), translates and summarizes with Claude, and exports structured Markdown memory files for your AI second brain.
 
 ## Features
 
-- **Dual-channel recording**: your mic + system audio via [Background Music](https://github.com/kyleneideck/BackgroundMusic) virtual loopback
-- **Local transcription**: OpenAI Whisper runs entirely on-device
-- **Structured insights**: auto-extracts decisions, action items, and risks
-- **Menu bar app**: one-click start/stop from the macOS menu bar
-- **CLI wrappers**: `meetrecord`, `meetstop`, `meettoggle`, `meetlast`, `meetlist`
+- **Dual Audio Capture**: Records both system audio (Teams, Zoom, Meet) and microphone simultaneously via native ScreenCaptureKit and AVFoundation. No third-party virtual audio driver required.
+- **Multi-lingual Transcription**: OpenAI Whisper API with auto-detection for English, Cantonese, and Mandarin.
+- **AI Summarization**: Anthropic Claude extracts executive summaries, key takeaways, action items, and detailed notes.
+- **Second Brain Export**: Clean Markdown with YAML frontmatter, optimized for RAG querying by Hermes, Claude, or Obsidian.
+- **Calendar Integration**: Reads Apple Calendar to detect upcoming meetings, sends native notifications, and auto-stops when events end.
+- **Global Shortcut**: One-key toggle to start/stop recording from anywhere.
+- **Native SwiftUI**: Minimalist menu bar popover, dark mode compatible, follows Apple HIG. No Electron, no Python runtime.
 
 ## Requirements
 
-- macOS 10.15+
-- Python 3.9+ with packages:
-  ```bash
-  pip3 install sounddevice soundfile numpy openai-whisper
-  ```
-- [Background Music](https://github.com/kyleneideck/BackgroundMusic/releases) virtual audio driver installed and running
-- Xcode Command Line Tools (for compiling Swift helpers)
+- macOS 14.0+
+- Xcode 15+ (for building from source)
+- OpenAI API key (Whisper)
+- Anthropic API key (Claude)
 
-## Quick Start
+## Installation
 
-### 1. Clone the repo
+### Build from Source
 
 ```bash
-git clone https://github.com/alphadawg88/meetrecorder.git ~/Projects/meetrecorder
-cd ~/Projects/meetrecorder
+git clone https://github.com/alphadawg88/meetrecorder.git
+cd meetrecorder
+brew install xcodegen
+xcodegen generate
+open MeetRecorder.xcodeproj
 ```
 
-### 2. Install
+Then press **Cmd+R** to build and run, or **Product > Archive** to create a release build.
 
-```bash
-./install.sh
+## Setup
+
+On first launch, grant these permissions when prompted:
+
+1. **Microphone** -- for recording your voice
+2. **Screen Recording** -- required by ScreenCaptureKit to capture system audio
+3. **Calendar** -- optional, for meeting reminders and auto-stop
+
+Open **Settings** from the menu bar and enter:
+- OpenAI API Key
+- Anthropic API Key
+- Preferred vault output path
+- Target language (English or Chinese)
+
+## Usage
+
+- **Start/Stop**: Click the waveform icon in the menu bar, or press your configured global shortcut.
+- **Calendar Events**: If a meeting starts within 5 minutes, a native notification appears. Tap "Record" to auto-name the file.
+- **Auto-Stop**: Enable in Settings to stop recording when the calendar event ends.
+- **Output**: Markdown files saved to your vault as `YYYY-MM-DD_HH-MM_Meeting_Title.md`.
+
+## Markdown Output Format
+
+```yaml
+---
+date: 2026-06-08T10:00:00Z
+duration: 00:45
+title: Weekly Standup
+tags: ["meeting", "standup"]
+source_language: auto-detected
+target_language: en
+---
 ```
 
-This compiles the Swift helpers and symlinks the CLI wrappers into `~/bin` (add `~/bin` to your PATH if you haven't already).
+Sections:
+1. Executive Summary
+2. Key Takeaways & Action Items
+3. Detailed Notes
+4. Translated Transcript
+5. Raw Original Transcript
 
-### 3. Launch the menu bar app
+Optimized for semantic search and AI agent interrogation.
 
-```bash
-open ~/Applications/MeetRecorderMenuBar.app
-```
+## Architecture
 
-Or use the CLI:
+| Layer | Technology |
+|-------|------------|
+| App Shell | SwiftUI + MenuBarExtra |
+| System Audio | ScreenCaptureKit (SCStream) |
+| Microphone | AVAudioRecorder |
+| Audio Mixing | AVMutableComposition |
+| Transcription | OpenAI Whisper API |
+| Summarization | Anthropic Claude API |
+| Calendar | EventKit |
+| Shortcuts | KeyboardShortcuts |
+| Storage | Local Filesystem (.md) |
 
-```bash
-meetrecord --name "client_call"
-# ... during the meeting ...
-meetstop --transcribe
-```
+## Privacy
 
-### 4. Find your recordings
-
-All files go to `~/Desktop/recordings/`:
-
-| File | Description |
-|------|-------------|
-| `*_combined.wav` | Stereo mix: L = mic, R = system audio (transcribed) |
-| `*_mic.wav` | Your microphone only |
-| `*_system.wav` | System/call audio only |
-| `*_transcript.txt` | Raw Whisper transcript |
-| `*_insights.md` | Decisions, action items, risks + full transcript |
-
-## CLI Reference
-
-| Command | Action |
-|---------|--------|
-| `meetrecord --name <name>` | Start dual recording, switch output to Background Music |
-| `meetstop` | Stop recording, restore original audio output |
-| `meetstop --transcribe` | Stop + run Whisper transcription |
-| `meettoggle` | Start if stopped, stop+transcribe if running |
-| `meetlast` | Transcribe the most recent recording |
-| `meetlist [n]` | List recent recordings with timestamps and sizes |
-
-## Menu Bar App
-
-The app lives in your menu bar (no Dock icon). It shows:
-- **○** when idle
-- **● REC** when recording
-
-Click to open the menu:
-- Start Recording
-- Stop Recording
-- Stop & Transcribe
-- Open Recordings Folder
-
-## Project Structure
-
-```
-meetrecorder/
-├── README.md
-├── install.sh
-├── bin/
-│   ├── meetrecord       # Python wrapper: start recording
-│   ├── meetstop         # Python wrapper: stop + restore audio
-│   ├── meettoggle       # Toggle start/stop
-│   ├── meetlast         # Transcribe most recent
-│   └── meetlist         # List recordings
-└── src/
-    ├── python/
-    │   ├── dual-record.py      # Dual-channel audio capture
-    │   ├── mac-recorder.py     # Single-channel mic recorder
-    │   └── mac-transcribe.py   # Whisper + insight extraction
-    └── swift/
-        ├── MeetRecorderMenuBar.swift  # Menu bar app source
-        └── set-default-output.swift   # CoreAudio output switcher
-```
-
-## Troubleshooting
-
-### "Background Music not running"
-Launch `/Applications/Background Music.app` before recording. The menu bar app will warn you if it's missing.
-
-### "No system audio captured"
-Your meeting app (Zoom/Teams/Meet) must use Background Music as its speaker output. The `meetrecord` wrapper switches the system default, but some apps override per-call.
-
-### Audio not restored after a crash
-If the recorder crashes and leaves your output stuck on Background Music:
-```bash
-~/.hermes/scripts/set-default-output "Your Speakers"
-```
-Or run `meetstop` — it restores audio on every path, even when no recording is found.
-
-### Transcription language wrong
-Whisper auto-detects language. If it guesses wrong, you can force a language by editing `mac-transcribe.py` and adding `language="en"` to the `model.transcribe()` call.
+- Audio is sent to OpenAI Whisper and Anthropic Claude for processing. Files are temporarily stored in `/tmp`.
+- API keys stored in UserDefaults for v1. Migrate to Keychain for production hardening.
+- No telemetry, no analytics, no third-party trackers.
 
 ## License
 
