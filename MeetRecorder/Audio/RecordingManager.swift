@@ -24,6 +24,8 @@ final class RecordingManager: ObservableObject {
     private let systemCapture = SystemAudioCapture()
     private let whisperService: Transcriber = WhisperService()
     private let claudeService: Summarizer = ClaudeService()
+    private let localTranscriber: Transcriber = WhisperKitTranscriber.shared
+    private let localSummarizer: Summarizer = MLXSummarizer.shared
     private let exporter = MarkdownExporter()
     private let settings = SettingsStore.shared
     private var cancellables = Set<AnyCancellable>()
@@ -146,11 +148,15 @@ final class RecordingManager: ObservableObject {
 
     private func processAudio(record: MeetingRecord, audioURL: URL) async {
         do {
-            processingStage = "Transcribing with Whisper…"
-            let transcript = try await whisperService.transcribe(audioURL: audioURL)
+            let offline = settings.offlineMode
+            let transcriber: Transcriber = offline ? localTranscriber : whisperService
+            let summarizer: Summarizer = offline ? localSummarizer : claudeService
 
-            processingStage = "Analyzing with Claude…"
-            let aiOutput = try await claudeService.process(
+            processingStage = offline ? "Transcribing on-device…" : "Transcribing with Whisper…"
+            let transcript = try await transcriber.transcribe(audioURL: audioURL)
+
+            processingStage = offline ? "Summarizing on-device…" : "Analyzing with Claude…"
+            let aiOutput = try await summarizer.process(
                 transcript: transcript,
                 targetLanguage: settings.targetLanguage,
                 meetingTitle: record.title

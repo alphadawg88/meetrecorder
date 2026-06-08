@@ -3,6 +3,7 @@ import KeyboardShortcuts
 
 struct SettingsView: View {
     @StateObject private var settings = SettingsStore.shared
+    @StateObject private var models = ModelManager.shared
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -27,9 +28,18 @@ struct SettingsView: View {
                             Text("Qwen2.5 7B").tag("8b")
                             Text("Qwen2.5 3B (light)").tag("4b")
                         }
-                        Text("Runs WhisperKit + a local LLM on this Mac — no data leaves the device. Models download on first use. On-device Cantonese is good but below cloud; use cloud for nuanced Cantonese translation.")
+                        Text("Runs WhisperKit + a local LLM on this Mac — no data leaves the device. Models download on first use (~6 GB). On-device Cantonese is good but below cloud; use cloud for nuanced Cantonese translation.")
                             .font(.system(size: 11))
                             .foregroundColor(.secondary)
+
+                        ModelStatusRow(label: "Transcription · WhisperKit large-v3", state: models.whisper)
+                        ModelStatusRow(label: "Summary · Qwen2.5", state: models.llm)
+
+                        Button(models.isBusy ? "Downloading…" : "Download / load on-device models") {
+                            models.prepareAll()
+                        }
+                        .buttonStyle(SecondaryButtonStyle())
+                        .disabled(models.isBusy)
                     }
                 } header: {
                     Text("Processing engine")
@@ -99,6 +109,43 @@ struct SettingsView: View {
 
             Spacer()
         }
-        .frame(width: 480, height: 520)
+        .frame(width: 480, height: 560)
+    }
+}
+
+private struct ModelStatusRow: View {
+    let label: String
+    let state: ModelManager.State
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Text(label)
+                .font(.system(size: 11))
+            Spacer()
+            switch state {
+            case .notReady:
+                Text("Not downloaded")
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+            case .preparing(let frac):
+                if let frac {
+                    Text("\(Int(frac * 100))%")
+                        .font(.system(size: 11))
+                        .monospacedDigit()
+                        .foregroundColor(.secondary)
+                } else {
+                    ProgressView().controlSize(.small).scaleEffect(0.7)
+                }
+            case .ready:
+                Label("Ready", systemImage: "checkmark.circle.fill")
+                    .font(.system(size: 11))
+                    .foregroundColor(Color(nsColor: .systemGreen))
+            case .failed(let msg):
+                Label("Failed", systemImage: "exclamationmark.triangle.fill")
+                    .font(.system(size: 11))
+                    .foregroundColor(Color(nsColor: .systemOrange))
+                    .help(msg)
+            }
+        }
     }
 }

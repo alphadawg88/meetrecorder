@@ -30,7 +30,18 @@ targets:
         com.apple.security.automation.apple-events: true
     dependencies:
       - package: KeyboardShortcuts
+      - package: WhisperKit
+      - package: mlx-swift-lm
+        product: MLXLLM
+      - package: mlx-swift-lm
+        product: MLXLMCommon
 packages:
   KeyboardShortcuts:
     url: https://github.com/sindresorhus/KeyboardShortcuts
     from: 2.0.0
+  WhisperKit:
+    url: https://github.com/argmaxinc/WhisperKit
+    from: 0.18.0
+  mlx-swift-lm:
+    url: https://github.com/ml-explore/mlx-swift-lm
+    minorVersion: 2.30.6   # 2.30.x pins swift-transformers 1.1.x to match WhisperKit 0.18
