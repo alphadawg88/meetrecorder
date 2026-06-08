@@ -10,8 +10,9 @@ DerivedData/
 xcuserdata/
 *.xcodeproj/
 
-# XcodeGen (generate locally)
+# XcodeGen (generated locally from project.yml)
 *.xcodeproj
+MeetRecorder/MeetRecorder.entitlements
 
 # API Keys / Secrets
 .env

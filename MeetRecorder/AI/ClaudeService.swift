@@ -4,12 +4,12 @@ actor ClaudeService {
     private let endpoint = URL(string: "https://api.anthropic.com/v1/messages")!
 
     func process(transcript: String, targetLanguage: String, meetingTitle: String) async throws -> AIOutput {
-        let settings = await SettingsStore.shared
+        let anthropicKey = await SettingsStore.shared.anthropicKey
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
-        request.setValue(settings.anthropicKey, forHTTPHeaderField: "x-api-key")
+        request.setValue(anthropicKey, forHTTPHeaderField: "x-api-key")
 
         let languageInstruction = targetLanguage == "zh"
             ? "Use Traditional Chinese for Cantonese context, Simplified Chinese for Mandarin context."
@@ -40,10 +40,12 @@ Output schema:
             "max_tokens": 8192,
             "system": systemPrompt,
             "messages": [
-                ["role": "user", "content": "Meeting Title: \(meetingTitle)
+                ["role": "user", "content": """
+Meeting Title: \(meetingTitle)
 
 Transcript:
-\(transcript)"]
+\(transcript)
+"""]
             ]
         ]
 
@@ -68,7 +70,9 @@ Transcript:
             .trimmingCharacters(in: .whitespacesAndNewlines)
 
         let outputData = cleanJSON.data(using: .utf8)!
-        return try JSONDecoder().decode(AIOutput.self, from: outputData)
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        return try decoder.decode(AIOutput.self, from: outputData)
     }
 }
 

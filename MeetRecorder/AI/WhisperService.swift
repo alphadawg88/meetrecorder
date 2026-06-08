@@ -4,54 +4,46 @@ actor WhisperService {
     private let endpoint = URL(string: "https://api.openai.com/v1/audio/transcriptions")!
 
     func transcribe(audioURL: URL) async throws -> String {
-        let settings = await SettingsStore.shared
+        let openAIKey = await SettingsStore.shared.openAIKey
+        let sourceLanguage = await SettingsStore.shared.sourceLanguage
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
-        request.setValue("Bearer \(settings.openAIKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("Bearer \(openAIKey)", forHTTPHeaderField: "Authorization")
 
         let boundary = UUID().uuidString
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
 
+        let crlf = "\r\n"
         var body = Data()
-        body.append("--\(boundary)
-".data(using: .utf8)!)
-        body.append("Content-Disposition: form-data; name="model"
-
-".data(using: .utf8)!)
-        body.append("whisper-1
-".data(using: .utf8)!)
-
-        if let lang = settings.sourceLanguage, lang != "auto" {
-            body.append("--\(boundary)
-".data(using: .utf8)!)
-            body.append("Content-Disposition: form-data; name="language"
-
-".data(using: .utf8)!)
-            body.append("\(lang)
-".data(using: .utf8)!)
+        func append(_ string: String) {
+            body.append(string.data(using: .utf8)!)
         }
 
-        body.append("--\(boundary)
-".data(using: .utf8)!)
-        body.append("Content-Disposition: form-data; name="response_format"
-
-".data(using: .utf8)!)
-        body.append("text
-".data(using: .utf8)!)
+        // model field
+        append("--\(boundary)\(crlf)")
+        append("Content-Disposition: form-data; name=\"model\"\(crlf)\(crlf)")
+        append("whisper-1\(crlf)")
 
+        // optional language field
+        if sourceLanguage != "auto" {
+            append("--\(boundary)\(crlf)")
+            append("Content-Disposition: form-data; name=\"language\"\(crlf)\(crlf)")
+            append("\(sourceLanguage)\(crlf)")
+        }
+
+        // response_format field
+        append("--\(boundary)\(crlf)")
+        append("Content-Disposition: form-data; name=\"response_format\"\(crlf)\(crlf)")
+        append("text\(crlf)")
+
+        // file field
         let audioData = try Data(contentsOf: audioURL)
-        body.append("--\(boundary)
-".data(using: .utf8)!)
-        body.append("Content-Disposition: form-data; name="file"; filename="audio.m4a"
-".data(using: .utf8)!)
-        body.append("Content-Type: audio/m4a
-
-".data(using: .utf8)!)
+        append("--\(boundary)\(crlf)")
+        append("Content-Disposition: form-data; name=\"file\"; filename=\"audio.m4a\"\(crlf)")
+        append("Content-Type: audio/m4a\(crlf)\(crlf)")
         body.append(audioData)
-        body.append("
-".data(using: .utf8)!)
-        body.append("--\(boundary)--
-".data(using: .utf8)!)
+        append(crlf)
+        append("--\(boundary)--\(crlf)")
 
         request.httpBody = body
 

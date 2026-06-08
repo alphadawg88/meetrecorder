@@ -1,6 +1,7 @@
 import Foundation
 
 struct MarkdownExporter {
+    @MainActor
     func export(record: MeetingRecord, aiOutput: AIOutput, rawTranscript: String) throws -> URL {
         let vault = SettingsStore.shared.vaultURL
         try FileManager.default.createDirectory(at: vault, withIntermediateDirectories: true)
@@ -17,6 +18,18 @@ struct MarkdownExporter {
         var tags = ["meeting"]
         if record.title.lowercased().contains("standup") { tags.append("standup") }
         if record.title.lowercased().contains("review") { tags.append("review") }
+
+        let takeawaysBlock = aiOutput.keyTakeaways
+            .map { "- \($0)" }
+            .joined(separator: "\n")
+
+        let actionItemsBlock = aiOutput.actionItems.map { item -> String in
+            var line = "- [ ] \(item.task)"
+            if let owner = item.owner, !owner.isEmpty {
+                line += " (Owner: \(owner))"
+            }
+            return line
+        }.joined(separator: "\n")
 
         let yaml = """
 ---
@@ -37,12 +50,10 @@ target_language: \(SettingsStore.shared.targetLanguage)
 ## Key Takeaways & Action Items
 
 ### Takeaways
-\(aiOutput.keyTakeaways.map { "- \(\($0))" }.joined(separator: "
-"))
+\(takeawaysBlock)
 
 ### Action Items
-\(aiOutput.actionItems.map { "- [ ] \(\($0.task))" + (\($0.owner != nil ? " (Owner: \(\($0.owner!)))" : "") }.joined(separator: "
-"))
+\(actionItemsBlock)
 
 ## Detailed Notes
 
@@ -67,7 +78,7 @@ target_language: \(SettingsStore.shared.targetLanguage)
 
 private extension String {
     var sanitizedForFilename: String {
-        let invalid = CharacterSet(charactersIn: "/\?%*|"<>")
+        let invalid = CharacterSet(charactersIn: "/\\?%*|\"<>")
         return self.components(separatedBy: invalid).joined(separator: "_").replacingOccurrences(of: " ", with: "_")
     }
 }
