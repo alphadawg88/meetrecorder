@@ -1,28 +1,28 @@
 import AVFoundation
 
 enum AudioMixer {
-    static func mix(micURL: URL, systemURL: URL) async throws -> URL {
+    /// Combine the captured channels into a single m4a. Either source may be nil
+    /// (mic-only / system-only); at least one must be present. The output is
+    /// always m4a so the transcription path gets a consistent, cloud-compatible
+    /// format regardless of which channels were captured.
+    static func mix(micURL: URL?, systemURL: URL?) async throws -> URL {
         let composition = AVMutableComposition()
+        var insertedAny = false
 
-        guard let micTrack = composition.addMutableTrack(withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid),
-              let sysTrack = composition.addMutableTrack(withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid) else {
-            throw MixError.trackCreationFailed
+        func add(_ url: URL) async throws {
+            let asset = AVURLAsset(url: url)
+            let duration = try await asset.load(.duration)
+            guard let sourceTrack = try await asset.loadTracks(withMediaType: .audio).first,
+                  let track = composition.addMutableTrack(withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid) else {
+                return
+            }
+            try track.insertTimeRange(CMTimeRange(start: .zero, duration: duration), of: sourceTrack, at: .zero)
+            insertedAny = true
         }
 
-        let micAsset = AVURLAsset(url: micURL)
-        let sysAsset = AVURLAsset(url: systemURL)
-
-        let micDuration = try await micAsset.load(.duration)
-        let sysDuration = try await sysAsset.load(.duration)
-        let duration = max(CMTimeGetSeconds(micDuration), CMTimeGetSeconds(sysDuration))
-        let cmDuration = CMTimeMakeWithSeconds(duration, preferredTimescale: 600)
-
-        if let micAudioTrack = try await micAsset.loadTracks(withMediaType: .audio).first {
-            try micTrack.insertTimeRange(CMTimeRange(start: .zero, duration: micDuration), of: micAudioTrack, at: .zero)
-        }
-        if let sysAudioTrack = try await sysAsset.loadTracks(withMediaType: .audio).first {
-            try sysTrack.insertTimeRange(CMTimeRange(start: .zero, duration: sysDuration), of: sysAudioTrack, at: .zero)
-        }
+        if let micURL { try await add(micURL) }
+        if let systemURL { try await add(systemURL) }
+        guard insertedAny else { throw MixError.trackCreationFailed }
 
         let outputURL = FileManager.default.temporaryDirectory.appendingPathComponent("mixed_\(UUID().uuidString).m4a")
         guard let exportSession = AVAssetExportSession(asset: composition, presetName: AVAssetExportPresetAppleM4A) else {
@@ -30,14 +30,13 @@ enum AudioMixer {
         }
         exportSession.outputURL = outputURL
         exportSession.outputFileType = .m4a
-        exportSession.timeRange = CMTimeRange(start: .zero, duration: cmDuration)
 
         await exportSession.export()
         if exportSession.status == .completed {
-            // Only delete the source recordings once the mix is safely written —
+            // Only delete the source recordings once the output is safely written —
             // otherwise a failed export would destroy the only copy of the audio.
-            try? FileManager.default.removeItem(at: micURL)
-            try? FileManager.default.removeItem(at: systemURL)
+            if let micURL { try? FileManager.default.removeItem(at: micURL) }
+            if let systemURL { try? FileManager.default.removeItem(at: systemURL) }
             return outputURL
         } else {
             throw MixError.exportFailed(exportSession.error)

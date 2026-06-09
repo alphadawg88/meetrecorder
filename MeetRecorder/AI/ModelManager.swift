@@ -84,23 +84,61 @@ final class ModelManager: ObservableObject {
     }
 
     func uninstallWhisper(_ name: String) {
-        guard let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else { return }
-        let folder = docs.appendingPathComponent("huggingface/models/argmaxinc/whisperkit-coreml/openai_whisper-\(name)")
-        try? FileManager.default.removeItem(at: folder)
+        if let folder = Self.whisperFolder(for: name) {
+            try? FileManager.default.removeItem(at: folder)
+        }
         downloadedWhisperModels.remove(name)
         persist()
         if case .ready = whisper { whisper = .notReady }
     }
 
     func uninstallLLM(_ id: String) {
-        let home = FileManager.default.homeDirectoryForCurrentUser
-        let parts = id.split(separator: "/", maxSplits: 1).map(String.init)
-        let folderName = parts.count == 2 ? "models--\(parts[0])--\(parts[1])" : "models--\(id)"
-        let folder = home.appendingPathComponent(".cache/huggingface/hub/\(folderName)")
-        try? FileManager.default.removeItem(at: folder)
+        for folder in Self.llmFolders(for: id) {
+            try? FileManager.default.removeItem(at: folder)
+        }
         downloadedLLMModels.remove(id)
         persist()
         if case .ready = llm { llm = .notReady }
+    }
+
+    // MARK: - On-disk model locations (single source of truth — used by both
+    // download-verification on launch and uninstall, so they can never drift).
+
+    /// WhisperKit (not sandboxed) caches Core ML models under ~/Documents/huggingface.
+    static func whisperFolder(for name: String) -> URL? {
+        guard let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else { return nil }
+        return docs.appendingPathComponent("huggingface/models/argmaxinc/whisperkit-coreml/openai_whisper-\(name)")
+    }
+
+    /// Where MLX-swift caches LLMs. The real location used by MLXLMCommon is
+    /// ~/Library/Caches/models/<repo-id> (verified on disk); the documents
+    /// huggingface tree and the Python-style hub cache are kept as fallbacks so
+    /// detection + uninstall work regardless of library version.
+    static func llmFolders(for id: String) -> [URL] {
+        var urls: [URL] = []
+        // Primary: MLXLMCommon default — ~/Library/Caches/models/<repo-id>
+        if let caches = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first {
+            urls.append(caches.appendingPathComponent("models/\(id)"))
+        }
+        // Fallback: swift-transformers documents layout (WhisperKit-style)
+        if let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
+            urls.append(docs.appendingPathComponent("huggingface/models/\(id)"))
+        }
+        // Fallback: Python huggingface_hub snapshot layout
+        let home = FileManager.default.homeDirectoryForCurrentUser
+        let parts = id.split(separator: "/", maxSplits: 1).map(String.init)
+        let folderName = parts.count == 2 ? "models--\(parts[0])--\(parts[1])" : "models--\(id)"
+        urls.append(home.appendingPathComponent(".cache/huggingface/hub/\(folderName)"))
+        return urls
+    }
+
+    private func whisperModelOnDisk(_ name: String) -> Bool {
+        guard let folder = Self.whisperFolder(for: name) else { return false }
+        return FileManager.default.fileExists(atPath: folder.path)
+    }
+
+    private func llmModelOnDisk(_ id: String) -> Bool {
+        Self.llmFolders(for: id).contains { FileManager.default.fileExists(atPath: $0.path) }
     }
 
     private func loadPersisted() {
@@ -111,18 +149,28 @@ final class ModelManager: ObservableObject {
             downloadedLLMModels = Set(llmStr.split(separator: ",").map(String.init))
         }
 
-        // Prune any whisper models whose on-disk folder does not exist.
-        let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
-        if let docs = docs {
-            var toRemove = Set<String>()
-            for name in downloadedWhisperModels {
-                let folder = docs.appendingPathComponent("huggingface/models/argmaxinc/whisperkit-coreml/openai_whisper-\(name)")
-                if !FileManager.default.fileExists(atPath: folder.path) {
-                    toRemove.insert(name)
-                }
-            }
-            downloadedWhisperModels.subtract(toRemove)
+        // Disk is the source of truth. Drop any persisted entry whose files are
+        // gone, and (re)add the currently-selected model if its files are present
+        // — even if the persisted flag was lost.
+        downloadedWhisperModels = downloadedWhisperModels.filter { whisperModelOnDisk($0) }
+        downloadedLLMModels = downloadedLLMModels.filter { llmModelOnDisk($0) }
+
+        let selectedWhisper = SettingsStore.shared.whisperModel
+        if whisperModelOnDisk(selectedWhisper) {
+            downloadedWhisperModels.insert(selectedWhisper)
         }
+        let selectedLLM = SettingsStore.shared.localLLMModelID
+        if llmModelOnDisk(selectedLLM) {
+            downloadedLLMModels.insert(selectedLLM)
+        }
+        persist()
+
+        // Restore readiness for the selected models. Without this the UI shows
+        // "Download Models" on every launch even when the model is already on
+        // disk — and a permission-grant relaunch traps the user in a re-download
+        // loop they can never escape.
+        if downloadedWhisperModels.contains(selectedWhisper) { whisper = .ready }
+        if downloadedLLMModels.contains(selectedLLM) { llm = .ready }
     }
 
     private func persist() {

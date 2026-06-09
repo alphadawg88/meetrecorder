@@ -8,23 +8,27 @@ struct SettingsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
+            // Sheet header — title token + ghost dismiss
             HStack {
                 Text("Settings")
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(DS.Font.title)
+                    .foregroundColor(DS.Color.primary)
                 Spacer()
                 Button("Done") { dismiss() }
                     .keyboardShortcut(.defaultAction)
                     .buttonStyle(GhostButtonStyle())
             }
-            .padding(20)
+            .padding(DS.Space.xl)
             .background(.ultraThinMaterial)
 
             Form {
-                // MARK: - On-device models (primary)
+                // MARK: On-device models (primary — this is the new first section)
                 Section {
+                    // Sub-header: Transcription
                     Text("Transcription")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundColor(.secondary)
+                        .font(DS.Font.caption)
+                        .fontWeight(.semibold)
+                        .foregroundColor(DS.Color.secondary)
 
                     ModelCard(
                         id: "large-v3",
@@ -35,7 +39,8 @@ struct SettingsView: View {
                         isDownloaded: models.isWhisperDownloaded("large-v3"),
                         isActiveDownload: models.activeWhisperDownload == "large-v3",
                         downloadState: models.activeWhisperDownload == "large-v3" ? models.whisper : .notReady,
-                        onUninstall: models.isWhisperDownloaded("large-v3") ? { models.uninstallWhisper("large-v3") } : nil
+                        onUninstall: models.isWhisperDownloaded("large-v3")
+                            ? { models.uninstallWhisper("large-v3") } : nil
                     )
                     ModelCard(
                         id: "small",
@@ -46,14 +51,17 @@ struct SettingsView: View {
                         isDownloaded: models.isWhisperDownloaded("small"),
                         isActiveDownload: models.activeWhisperDownload == "small",
                         downloadState: models.activeWhisperDownload == "small" ? models.whisper : .notReady,
-                        onUninstall: models.isWhisperDownloaded("small") ? { models.uninstallWhisper("small") } : nil
+                        onUninstall: models.isWhisperDownloaded("small")
+                            ? { models.uninstallWhisper("small") } : nil
                     )
 
-                    Divider().padding(.vertical, 4)
+                    Divider().padding(.vertical, DS.Space.xs)
 
+                    // Sub-header: Analysis
                     Text("Analysis")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundColor(.secondary)
+                        .font(DS.Font.caption)
+                        .fontWeight(.semibold)
+                        .foregroundColor(DS.Color.secondary)
 
                     ModelCard(
                         id: "mlx-community/Qwen2.5-7B-Instruct-4bit",
@@ -63,8 +71,10 @@ struct SettingsView: View {
                         selected: $settings.localLLMModelID,
                         isDownloaded: models.isLLMDownloaded("mlx-community/Qwen2.5-7B-Instruct-4bit"),
                         isActiveDownload: models.activeLLMDownload == "mlx-community/Qwen2.5-7B-Instruct-4bit",
-                        downloadState: models.activeLLMDownload == "mlx-community/Qwen2.5-7B-Instruct-4bit" ? models.llm : .notReady,
-                        onUninstall: models.isLLMDownloaded("mlx-community/Qwen2.5-7B-Instruct-4bit") ? { models.uninstallLLM("mlx-community/Qwen2.5-7B-Instruct-4bit") } : nil
+                        downloadState: models.activeLLMDownload == "mlx-community/Qwen2.5-7B-Instruct-4bit"
+                            ? models.llm : .notReady,
+                        onUninstall: models.isLLMDownloaded("mlx-community/Qwen2.5-7B-Instruct-4bit")
+                            ? { models.uninstallLLM("mlx-community/Qwen2.5-7B-Instruct-4bit") } : nil
                     )
                     ModelCard(
                         id: "mlx-community/Qwen2.5-3B-Instruct-4bit",
@@ -74,8 +84,10 @@ struct SettingsView: View {
                         selected: $settings.localLLMModelID,
                         isDownloaded: models.isLLMDownloaded("mlx-community/Qwen2.5-3B-Instruct-4bit"),
                         isActiveDownload: models.activeLLMDownload == "mlx-community/Qwen2.5-3B-Instruct-4bit",
-                        downloadState: models.activeLLMDownload == "mlx-community/Qwen2.5-3B-Instruct-4bit" ? models.llm : .notReady,
-                        onUninstall: models.isLLMDownloaded("mlx-community/Qwen2.5-3B-Instruct-4bit") ? { models.uninstallLLM("mlx-community/Qwen2.5-3B-Instruct-4bit") } : nil
+                        downloadState: models.activeLLMDownload == "mlx-community/Qwen2.5-3B-Instruct-4bit"
+                            ? models.llm : .notReady,
+                        onUninstall: models.isLLMDownloaded("mlx-community/Qwen2.5-3B-Instruct-4bit")
+                            ? { models.uninstallLLM("mlx-community/Qwen2.5-3B-Instruct-4bit") } : nil
                     )
                     ModelCard(
                         id: "mlx-community/Meta-Llama-3.1-8B-Instruct-4bit",
@@ -85,8 +97,10 @@ struct SettingsView: View {
                         selected: $settings.localLLMModelID,
                         isDownloaded: models.isLLMDownloaded("mlx-community/Meta-Llama-3.1-8B-Instruct-4bit"),
                         isActiveDownload: models.activeLLMDownload == "mlx-community/Meta-Llama-3.1-8B-Instruct-4bit",
-                        downloadState: models.activeLLMDownload == "mlx-community/Meta-Llama-3.1-8B-Instruct-4bit" ? models.llm : .notReady,
-                        onUninstall: models.isLLMDownloaded("mlx-community/Meta-Llama-3.1-8B-Instruct-4bit") ? { models.uninstallLLM("mlx-community/Meta-Llama-3.1-8B-Instruct-4bit") } : nil
+                        downloadState: models.activeLLMDownload == "mlx-community/Meta-Llama-3.1-8B-Instruct-4bit"
+                            ? models.llm : .notReady,
+                        onUninstall: models.isLLMDownloaded("mlx-community/Meta-Llama-3.1-8B-Instruct-4bit")
+                            ? { models.uninstallLLM("mlx-community/Meta-Llama-3.1-8B-Instruct-4bit") } : nil
                     )
                     ModelCard(
                         id: "mlx-community/DeepSeek-R1-Distill-Qwen-7B-4bit",
@@ -96,28 +110,39 @@ struct SettingsView: View {
                         selected: $settings.localLLMModelID,
                         isDownloaded: models.isLLMDownloaded("mlx-community/DeepSeek-R1-Distill-Qwen-7B-4bit"),
                         isActiveDownload: models.activeLLMDownload == "mlx-community/DeepSeek-R1-Distill-Qwen-7B-4bit",
-                        downloadState: models.activeLLMDownload == "mlx-community/DeepSeek-R1-Distill-Qwen-7B-4bit" ? models.llm : .notReady,
-                        onUninstall: models.isLLMDownloaded("mlx-community/DeepSeek-R1-Distill-Qwen-7B-4bit") ? { models.uninstallLLM("mlx-community/DeepSeek-R1-Distill-Qwen-7B-4bit") } : nil
+                        downloadState: models.activeLLMDownload == "mlx-community/DeepSeek-R1-Distill-Qwen-7B-4bit"
+                            ? models.llm : .notReady,
+                        onUninstall: models.isLLMDownloaded("mlx-community/DeepSeek-R1-Distill-Qwen-7B-4bit")
+                            ? { models.uninstallLLM("mlx-community/DeepSeek-R1-Distill-Qwen-7B-4bit") } : nil
                     )
 
-                    Divider().padding(.vertical, 4)
+                    Divider().padding(.vertical, DS.Space.xs)
 
-                    Button(models.isBusy ? "Downloading…" : (models.isWhisperDownloaded(settings.whisperModel) && models.isLLMDownloaded(settings.localLLMModelID) ? "Models ready ✓" : "Download selected models")) {
+                    // Download CTA — secondary button, adapts label to current state
+                    Button(
+                        models.isBusy ? "Downloading…" :
+                        (models.isWhisperDownloaded(settings.whisperModel) &&
+                         models.isLLMDownloaded(settings.localLLMModelID)
+                         ? "Models ready ✓"
+                         : "Download selected models")
+                    ) {
                         models.prepareAll()
                     }
                     .buttonStyle(SecondaryButtonStyle())
                     .disabled(models.isBusy)
+
                 } header: {
                     Text("On-device models")
-                        .font(.system(size: 10, weight: .semibold))
-                        .tracking(0.5)
+                        .labelCaps()
+                        .foregroundColor(DS.Color.secondary)
                 }
 
-                // MARK: - Output
+                // MARK: Output
                 Section {
-                    HStack(spacing: 8) {
+                    HStack(spacing: DS.Space.sm) {
                         TextField("Vault Path", text: $settings.vaultPath)
                             .textFieldStyle(.roundedBorder)
+                            .font(DS.Font.body)
                         Button("Browse…") {
                             let panel = NSOpenPanel()
                             panel.canChooseFiles = false
@@ -143,13 +168,14 @@ struct SettingsView: View {
                         Text("Mandarin").tag("zh-CN")
                     }
                     .pickerStyle(.segmented)
+
                 } header: {
                     Text("Output")
-                        .font(.system(size: 10, weight: .semibold))
-                        .tracking(0.5)
+                        .labelCaps()
+                        .foregroundColor(DS.Color.secondary)
                 }
 
-                // MARK: - Automation
+                // MARK: Automation
                 Section {
                     Toggle("Calendar Reminders", isOn: $settings.calendarReminders)
                     Toggle("Auto-stop on Event End", isOn: $settings.autoStop)
@@ -159,11 +185,11 @@ struct SettingsView: View {
                     }
                 } header: {
                     Text("Automation")
-                        .font(.system(size: 10, weight: .semibold))
-                        .tracking(0.5)
+                        .labelCaps()
+                        .foregroundColor(DS.Color.secondary)
                 }
 
-                // MARK: - Cloud enhancement (optional, at bottom)
+                // MARK: Cloud enhancement (optional, at bottom — not primary)
                 Section {
                     Toggle("Prefer cloud when keys are set", isOn: $settings.preferCloud)
 
@@ -173,16 +199,16 @@ struct SettingsView: View {
                     }
                 } header: {
                     Text("Cloud enhancement (optional)")
-                        .font(.system(size: 10, weight: .semibold))
-                        .tracking(0.5)
+                        .labelCaps()
+                        .foregroundColor(DS.Color.secondary)
                 } footer: {
                     Text("Cloud APIs improve nuanced translation — especially Cantonese slang and idioms. Not required for most meetings.")
-                        .font(.system(size: 11))
-                        .foregroundColor(.secondary)
+                        .font(DS.Font.caption)
+                        .foregroundColor(DS.Color.secondary)
                 }
             }
             .formStyle(.grouped)
-            .padding(.top, 8)
+            .padding(.top, DS.Space.sm)
 
             Spacer()
         }

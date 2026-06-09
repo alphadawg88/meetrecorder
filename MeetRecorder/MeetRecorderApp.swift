@@ -80,11 +80,31 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func statusItemClicked(_ sender: Any?) {
         guard let button = statusItem.button else { return }
+        // Right-click (or control-click) opens a small menu with Quit; left-click toggles the popover.
+        let event = NSApp.currentEvent
+        if event?.type == .rightMouseUp || event?.modifierFlags.contains(.control) == true {
+            showContextMenu(from: button)
+            return
+        }
         if popover.isShown {
             popover.performClose(sender)
         } else {
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
         }
+    }
+
+    private func showContextMenu(from button: NSStatusBarButton) {
+        let menu = NSMenu()
+        let quitItem = NSMenuItem(title: "Quit Glyph", action: #selector(quit), keyEquivalent: "q")
+        quitItem.target = self
+        menu.addItem(quitItem)
+        menu.popUp(positioning: nil,
+                   at: NSPoint(x: 0, y: button.bounds.height + 4),
+                   in: button)
+    }
+
+    @objc private func quit() {
+        NSApplication.shared.terminate(nil)
     }
 
     private func updateStatusIcon(isRecording: Bool, processingStage: String, progress: Double) {

@@ -31,6 +31,9 @@ final class RecordingManager: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private var autoStopTimer: Timer?
     private var calendarManager: CalendarManager?
+    // The audio channels captured for the in-progress recording (snapshotted at
+    // start so a settings change mid-recording can't desync start vs. stop).
+    private var activeSource: AudioSource = .both
 
     init() {
         loadRecords()
@@ -84,21 +87,29 @@ final class RecordingManager: ObservableObject {
         )
         currentRecord = record
         isRecording = true
+        let source = settings.audioSource
+        activeSource = source
         NotificationManager.notify(title: "Glyph is recording", body: "Tap the menu bar icon to stop.")
 
         Task {
             do {
-                try await micCapture.start()
-                try await systemCapture.start()
+                // Start only the selected channels. Mic-only skips ScreenCaptureKit
+                // entirely (no Screen Recording permission / relaunch needed).
+                if source.capturesMic { try await micCapture.start() }
+                if source.capturesSystem { try await systemCapture.start() }
                 scheduleAutoStop(eventID: calendarEventID)
             } catch {
                 await handleError(error, context: "Failed to start audio capture")
-                async let micStop2 = micCapture.stop()
-                async let sysStop2 = systemCapture.stop()
-                let (micURL, sysURL) = await (micStop2, sysStop2)
-                // The start failed — discard any partial temp recordings.
-                try? FileManager.default.removeItem(at: micURL)
-                try? FileManager.default.removeItem(at: sysURL)
+                // The start failed — stop and discard any partial temp recordings
+                // for whichever channels we attempted.
+                if source.capturesMic {
+                    let micURL = await micCapture.stop()
+                    try? FileManager.default.removeItem(at: micURL)
+                }
+                if source.capturesSystem {
+                    let sysURL = await systemCapture.stop()
+                    try? FileManager.default.removeItem(at: sysURL)
+                }
             }
         }
     }
@@ -123,10 +134,12 @@ final class RecordingManager: ObservableObject {
         )
         currentRecord = record
 
+        let source = activeSource
         Task {
             do {
-                async let micStop = micCapture.stop()
-                async let sysStop = systemCapture.stop()
+                // Stop and collect only the channels that were actually captured.
+                async let micStop: URL? = source.capturesMic ? micCapture.stop() : nil
+                async let sysStop: URL? = source.capturesSystem ? systemCapture.stop() : nil
                 let (micURL, sysURL) = await (micStop, sysStop)
                 let mixedURL = try await AudioMixer.mix(micURL: micURL, systemURL: sysURL)
 

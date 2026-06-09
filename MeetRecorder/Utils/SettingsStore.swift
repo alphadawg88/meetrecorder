@@ -1,5 +1,26 @@
 import SwiftUI
 
+/// Which audio channels to capture for a recording. Persisted; the last choice
+/// stays selected until changed.
+enum AudioSource: String, CaseIterable, Identifiable {
+    case both, mic, system
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .both:   return "Both"
+        case .mic:    return "Mic"
+        case .system: return "System"
+        }
+    }
+
+    /// Capture the local microphone (your voice).
+    var capturesMic: Bool { self != .system }
+    /// Capture system audio via ScreenCaptureKit (remote participants).
+    var capturesSystem: Bool { self != .mic }
+}
+
 @MainActor
 final class SettingsStore: ObservableObject {
     static let shared = SettingsStore()
@@ -12,6 +33,10 @@ final class SettingsStore: ObservableObject {
     @AppStorage("calendarReminders") var calendarReminders: Bool = true
     @AppStorage("autoStop") var autoStop: Bool = false
     @AppStorage("globalShortcutEnabled") var globalShortcutEnabled: Bool = true
+
+    // Which audio channels to capture: mic only, system only, or both. Defaults
+    // to both (full meeting). Persisted across launches.
+    @AppStorage("audioSource") var audioSource: AudioSource = .both
 
     // On-device is the default. Cloud APIs are an opt-in enhancement: they are
     // only used when the user prefers them AND both keys are present.

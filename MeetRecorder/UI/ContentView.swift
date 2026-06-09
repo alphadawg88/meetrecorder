@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 import EventKit
 import KeyboardShortcuts
 
@@ -13,6 +14,9 @@ struct ContentView: View {
     var body: some View {
         VStack(spacing: 0) {
             HeaderView(showingSettings: $showingSettings, showingHelp: $showingHelp)
+
+            Divider()
+                .padding(.horizontal, DS.Space.lg)
 
             Group {
                 switch recordingManager.phase {
@@ -54,18 +58,21 @@ struct HeaderView: View {
     @EnvironmentObject var recordingManager: RecordingManager
 
     var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: recordingManager.phase.isRecording ? "waveform.circle.fill" : "waveform")
+        HStack(spacing: DS.Space.sm) {
+            // Waveform icon: recording red + pulse when live; secondary otherwise
+            Image(systemName: recordingManager.phase.isRecording
+                  ? "waveform.circle.fill"
+                  : "waveform")
                 .foregroundColor(recordingManager.phase.isRecording
-                                 ? Color(nsColor: .systemRed)
-                                 : .secondary)
+                                 ? DS.Color.recording
+                                 : DS.Color.secondary)
                 .symbolEffect(.pulse, isActive: recordingManager.phase.isRecording)
                 .imageScale(.medium)
                 .accessibilityHidden(true)
 
             Text("Glyph")
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundColor(.primary)
+                .font(DS.Font.title)
+                .foregroundColor(DS.Color.primary)
 
             Spacer()
 
@@ -83,8 +90,8 @@ struct HeaderView: View {
             .buttonStyle(GhostButtonStyle())
             .accessibilityLabel("Settings")
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .padding(.horizontal, DS.Space.lg)
+        .padding(.vertical, DS.Space.md)
     }
 }
 
@@ -94,18 +101,22 @@ struct IdleView: View {
     @EnvironmentObject var recordingManager: RecordingManager
     @EnvironmentObject var calendarManager: CalendarManager
     @StateObject private var models = ModelManager.shared
+    // Persisted audio-source choice (mic / system / both). Last pick stays.
+    @AppStorage("audioSource") private var audioSource: AudioSource = .both
 
     var body: some View {
-        VStack(spacing: 16) {
-            if models.whisper != .ready || models.llm != .ready {
-                ConfigurationBanner()
-            }
+        VStack(spacing: DS.Space.lg) {
+            // On-device model state banner (download-needed / downloading / ready)
+            ConfigurationBanner()
+                .padding(.horizontal, DS.Space.lg)
 
+            // Download progress rows — visible only while a download is active
             if models.isBusy {
                 DownloadProgressView()
-                    .padding(.horizontal, 16)
+                    .padding(.horizontal, DS.Space.lg)
             }
 
+            // Primary action — adapts label and icon by model readiness
             Button(action: {
                 if models.whisper != .ready || models.llm != .ready {
                     models.prepareAll()
@@ -114,94 +125,155 @@ struct IdleView: View {
                 }
             }) {
                 if models.isBusy {
-                    HStack(spacing: 6) {
+                    HStack(spacing: DS.Space.xs + 2) {
                         ProgressView()
                             .controlSize(.small)
                             .scaleEffect(0.7)
                         Text("Downloading…")
                     }
-                    .font(.system(size: 13, weight: .semibold))
                     .frame(maxWidth: .infinity)
                     .frame(height: 32)
                 } else {
-                    Label(models.whisper == .ready && models.llm == .ready
-                          ? "Start Recording"
-                          : "Download Models",
-                          systemImage: models.whisper == .ready && models.llm == .ready
-                          ? "record.circle"
-                          : "arrow.down.circle")
-                        .font(.system(size: 13, weight: .semibold))
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 32)
+                    Label(
+                        models.whisper == .ready && models.llm == .ready
+                            ? "Start Recording"
+                            : "Download Models",
+                        systemImage: models.whisper == .ready && models.llm == .ready
+                            ? "record.circle"
+                            : "arrow.down.circle"
+                    )
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 32)
                 }
             }
             .buttonStyle(RecordButtonStyle())
             .disabled(models.isBusy)
-            .padding(.horizontal, 16)
+            .padding(.horizontal, DS.Space.lg)
+            .accessibilityLabel(
+                models.isBusy ? "Downloading models" :
+                (models.whisper == .ready && models.llm == .ready
+                 ? "Start Recording"
+                 : "Download on-device models")
+            )
 
+            // Audio-source picker — only shown when models are ready and recording
+            // is meaningful. CAPTURE label-caps header reads as a designed section.
+            if models.whisper == .ready && models.llm == .ready {
+                VStack(alignment: .leading, spacing: DS.Space.xs) {
+                    Text("Capture")
+                        .labelCaps()
+                        .foregroundColor(DS.Color.secondary)
+                        .padding(.horizontal, DS.Space.lg)
+
+                    Picker("Audio source", selection: $audioSource) {
+                        ForEach(AudioSource.allCases) { source in
+                            Text(source.label).tag(source)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                    .padding(.horizontal, DS.Space.lg)
+                }
+            }
+
+            // Upcoming calendar event card
             if let event = calendarManager.upcomingEvent {
                 UpcomingEventCard(event: event)
-                    .padding(.horizontal, 16)
+                    .padding(.horizontal, DS.Space.lg)
             }
         }
-        .padding(.vertical, 12)
+        .padding(.vertical, DS.Space.md)
     }
 }
+
+// MARK: - Configuration banner
+//
+// Reflects the three on-device model states the design docs predate:
+//   • needs-download: neutral info (blue-tinted) + "Download Models" CTA
+//   • downloading:    shows inline progress spinner, calm "Downloading…" copy
+//   • ready:          success tint, confirms on-device privacy posture
+//
+// The token mapping: ready → success tint/icon; downloading → surfaceSecondary
+// bg with a spinner; needs-download → info tint (systemBlue, not warning/orange —
+// this is an invitation, not an error).
 
 struct ConfigurationBanner: View {
-    @EnvironmentObject var recordingManager: RecordingManager
     @StateObject private var models = ModelManager.shared
 
+    private var isReady: Bool { models.whisper == .ready && models.llm == .ready }
+
     var body: some View {
-        HStack(spacing: 8) {
-            if models.isBusy {
-                ProgressView()
-                    .controlSize(.small)
-                    .scaleEffect(0.7)
-                    .imageScale(.small)
-            } else {
-                Image(systemName: models.whisper == .ready && models.llm == .ready
-                      ? "checkmark.circle.fill"
-                      : "arrow.down.circle.fill")
-                    .foregroundColor(models.whisper == .ready && models.llm == .ready
-                                     ? Color(nsColor: .systemGreen)
-                                     : Color(nsColor: .systemBlue))
+        // When ready, show a minimal positive confirmation — not a persistent
+        // banner that adds noise. Hide it once the user has seen it.
+        if isReady {
+            HStack(spacing: DS.Space.sm) {
+                Image(systemName: "lock.shield.fill")
+                    .foregroundColor(DS.Color.success)
                     .imageScale(.small)
                     .accessibilityHidden(true)
+                Text("On-device — your audio stays on this Mac.")
+                    .font(DS.Font.caption)
+                    .foregroundColor(DS.Color.secondary)
+                Spacer()
             }
-
-            Text(models.isBusy
-                 ? "Downloading on-device models…"
-                 : (models.whisper == .ready && models.llm == .ready
-                    ? "Ready to record — on-device."
-                    : "Download on-device models to begin."))
-                .font(.system(size: 11))
-                .foregroundColor(.secondary)
-
-            Spacer()
+            .padding(DS.Space.sm)
+            .background(
+                RoundedRectangle(cornerRadius: DS.Radius.md, style: .continuous)
+                    .fill(DS.Color.successWash)
+            )
+        } else if models.isBusy {
+            // Downloading state: calm progress copy, no alarming icon
+            HStack(spacing: DS.Space.sm) {
+                ProgressView()
+                    .controlSize(.small)
+                    .scaleEffect(0.75)
+                Text("Downloading on-device models…")
+                    .font(DS.Font.caption)
+                    .foregroundColor(DS.Color.secondary)
+                Spacer()
+            }
+            .padding(DS.Space.sm)
+            .background(
+                RoundedRectangle(cornerRadius: DS.Radius.md, style: .continuous)
+                    .fill(DS.Color.surfaceSecondary)
+            )
+        } else {
+            // Needs-download state: informational (not an error — this is first-run)
+            HStack(spacing: DS.Space.sm) {
+                Image(systemName: "arrow.down.circle.fill")
+                    .foregroundColor(Color(nsColor: .systemBlue))
+                    .imageScale(.small)
+                    .accessibilityHidden(true)
+                Text("Download on-device models to begin.")
+                    .font(DS.Font.caption)
+                    .foregroundColor(DS.Color.secondary)
+                Spacer()
+            }
+            .padding(DS.Space.sm)
+            .background(
+                RoundedRectangle(cornerRadius: DS.Radius.md, style: .continuous)
+                    .fill(Color(nsColor: .systemBlue).opacity(0.08))
+            )
         }
-        .padding(8)
-        .background(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(Color(nsColor: .systemBlue).opacity(0.08))
-        )
-        .padding(.horizontal, 16)
     }
 }
+
+// MARK: - Upcoming event card
 
 struct UpcomingEventCard: View {
     let event: EKEvent
     @EnvironmentObject var recordingManager: RecordingManager
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: DS.Space.md) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(event.title ?? "Meeting")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(DS.Font.bodyMedium)
+                    .foregroundColor(DS.Color.primary)
                     .lineLimit(1)
                 Text("\(event.startDate, style: .time) – \(event.endDate, style: .time)")
-                    .font(.system(size: 11))
-                    .foregroundColor(.secondary)
+                    .font(DS.Font.caption)
+                    .foregroundColor(DS.Color.secondary)
             }
 
             Spacer()
@@ -214,9 +286,9 @@ struct UpcomingEventCard: View {
             }
             .buttonStyle(SecondaryButtonStyle())
         }
-        .padding(10)
-        .background(Color(nsColor: .controlBackgroundColor))
-        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .padding(DS.Space.sm + 2) // 10px — spec: meeting-card internal padding
+        .background(DS.Color.surfaceSecondary)
+        .clipShape(RoundedRectangle(cornerRadius: DS.Radius.md, style: .continuous))
     }
 }
 
@@ -227,24 +299,25 @@ struct RecordingView: View {
     @EnvironmentObject var recordingManager: RecordingManager
 
     var body: some View {
-        VStack(spacing: 16) {
-            HStack(spacing: 10) {
+        VStack(spacing: DS.Space.lg) {
+            HStack(spacing: DS.Space.sm + 2) {
                 Image(systemName: "waveform.circle.fill")
-                    .foregroundColor(Color(nsColor: .systemRed))
+                    .foregroundColor(DS.Color.recording)
                     .symbolEffect(.pulse)
                     .imageScale(.large)
                     .accessibilityHidden(true)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(record.title)
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(DS.Font.bodyMedium)
+                        .foregroundColor(DS.Color.primary)
                         .lineLimit(1)
-                    // Live elapsed timer, monospaced to avoid jitter.
+                    // Live elapsed timer — display token + monospacedDigit to prevent jitter.
                     TimelineView(.periodic(from: record.startTime, by: 1)) { context in
                         Text(Self.elapsed(since: record.startTime, now: context.date))
-                            .font(.system(size: 20, weight: .semibold, design: .rounded))
+                            .font(DS.Font.display)
                             .monospacedDigit()
-                            .foregroundColor(.primary)
+                            .foregroundColor(DS.Color.primary)
                     }
                 }
 
@@ -253,24 +326,24 @@ struct RecordingView: View {
                 StatusBadge(text: "REC", style: .recording)
                     .accessibilityLabel("Recording in progress")
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, DS.Space.lg)
 
             Button(action: { recordingManager.stopRecording() }) {
                 Label("Stop Recording", systemImage: "stop.circle")
-                    .font(.system(size: 13, weight: .semibold))
                     .frame(maxWidth: .infinity)
                     .frame(height: 32)
             }
             .buttonStyle(RecordButtonStyle())
-            .padding(.horizontal, 16)
+            .padding(.horizontal, DS.Space.lg)
         }
-        .padding(.vertical, 12)
+        .padding(.vertical, DS.Space.md)
+        // Subtle recording-red wash behind the card (per design spec)
         .background(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(Color(nsColor: .systemRed).opacity(0.06))
-                .padding(.horizontal, 12)
+            RoundedRectangle(cornerRadius: DS.Radius.md, style: .continuous)
+                .fill(DS.Color.recordingWash)
+                .padding(.horizontal, DS.Space.md)
         )
-        .padding(.vertical, 4)
+        .padding(.vertical, DS.Space.xs)
     }
 
     private static func elapsed(since start: Date, now: Date) -> String {
@@ -286,20 +359,20 @@ struct ProcessingView: View {
     let stage: String
 
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: DS.Space.md) {
             ProgressView()
                 .controlSize(.small)
                 .scaleEffect(0.8)
 
             Text(stage)
-                .font(.system(size: 11))
-                .foregroundColor(.secondary)
+                .font(DS.Font.caption)
+                .foregroundColor(DS.Color.secondary)
                 .multilineTextAlignment(.center)
 
             StatusBadge(text: "Processing", style: .processing)
         }
         .frame(maxWidth: .infinity, minHeight: 120)
-        .padding(.vertical, 16)
+        .padding(.vertical, DS.Space.lg)
     }
 }
 
@@ -311,19 +384,23 @@ struct HistoryView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Divider()
-                .padding(.horizontal, 16)
+                .padding(.horizontal, DS.Space.lg)
 
             Text("Recent")
-                .font(.system(size: 10, weight: .semibold))
-                .foregroundColor(.secondary)
-                .tracking(0.5)
-                .padding(.horizontal, 16)
-                .padding(.top, 8)
-                .padding(.bottom, 4)
+                .labelCaps()
+                .foregroundColor(DS.Color.secondary)
+                .padding(.horizontal, DS.Space.lg)
+                .padding(.top, DS.Space.sm)
+                .padding(.bottom, DS.Space.xs)
 
             List(recordingManager.records.prefix(5)) { record in
                 HistoryRow(record: record)
-                    .listRowInsets(EdgeInsets(top: 2, leading: 16, bottom: 2, trailing: 16))
+                    .listRowInsets(EdgeInsets(
+                        top: 2,
+                        leading: DS.Space.lg,
+                        bottom: 2,
+                        trailing: DS.Space.lg
+                    ))
                     .listRowSeparator(.hidden)
                     .listRowBackground(Color.clear)
             }
@@ -338,7 +415,7 @@ struct HistoryRow: View {
     let record: MeetingRecord
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: DS.Space.sm) {
             Image(systemName: iconName)
                 .foregroundColor(iconColor)
                 .imageScale(.small)
@@ -347,17 +424,21 @@ struct HistoryRow: View {
 
             VStack(alignment: .leading, spacing: 1) {
                 Text(record.title)
-                    .font(.system(size: 12, weight: .medium))
+                    .font(DS.Font.body)
+                    .fontWeight(.medium)
+                    .foregroundColor(DS.Color.primary)
                     .lineLimit(1)
                 Text(record.startTime.formatted(date: .abbreviated, time: .shortened))
-                    .font(.system(size: 10))
-                    .foregroundColor(.secondary)
+                    .font(.system(size: 10).monospacedDigit())
+                    .foregroundColor(DS.Color.secondary)
             }
 
             Spacer()
 
             if let mdURL = record.markdownURL {
-                Button(action: { NSWorkspace.shared.open(mdURL.deletingLastPathComponent()) }) {
+                Button(action: {
+                    NSWorkspace.shared.open(mdURL.deletingLastPathComponent())
+                }) {
                     Image(systemName: "arrow.up.forward.square")
                         .imageScale(.small)
                 }
@@ -365,24 +446,24 @@ struct HistoryRow: View {
                 .accessibilityLabel("Open in Finder")
             }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, DS.Space.xs)
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
     }
 
     private var iconName: String {
         switch record.status {
-        case .completed: return "checkmark.circle.fill"
-        case .processing, .recording: return "ellipsis.circle.fill"
-        case .failed: return "exclamationmark.circle.fill"
+        case .completed:               return "checkmark.circle.fill"
+        case .processing, .recording:  return "ellipsis.circle.fill"
+        case .failed:                  return "exclamationmark.circle.fill"
         }
     }
 
     private var iconColor: Color {
         switch record.status {
-        case .completed: return Color(nsColor: .systemGreen)
-        case .processing, .recording: return Color(nsColor: .systemOrange)
-        case .failed: return Color(nsColor: .systemRed)
+        case .completed:               return DS.Color.success
+        case .processing, .recording:  return DS.Color.warning
+        case .failed:                  return DS.Color.error
         }
     }
 }
@@ -393,7 +474,7 @@ struct DownloadProgressView: View {
     @StateObject private var models = ModelManager.shared
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: DS.Space.sm) {
             if let name = models.activeWhisperDownload {
                 ModelDownloadRow(label: "Whisper \(name)", state: models.whisper)
             }
@@ -402,10 +483,10 @@ struct DownloadProgressView: View {
                 ModelDownloadRow(label: shortName, state: models.llm)
             }
         }
-        .padding(10)
+        .padding(DS.Space.sm + 2) // 10px — card internal padding
         .background(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(Color(nsColor: .controlBackgroundColor))
+            RoundedRectangle(cornerRadius: DS.Radius.md, style: .continuous)
+                .fill(DS.Color.surfaceSecondary)
         )
     }
 }
@@ -415,10 +496,12 @@ private struct ModelDownloadRow: View {
     let state: ModelManager.State
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: DS.Space.xs) {
             HStack {
                 Text(label)
-                    .font(.system(size: 11, weight: .medium))
+                    .font(DS.Font.caption)
+                    .fontWeight(.medium)
+                    .foregroundColor(DS.Color.primary)
                 Spacer()
                 stateLabel
             }
@@ -440,16 +523,16 @@ private struct ModelDownloadRow: View {
             if let frac {
                 Text("\(Int(frac * 100))%")
                     .font(.system(size: 10).monospacedDigit())
-                    .foregroundColor(.secondary)
+                    .foregroundColor(DS.Color.secondary)
             } else {
                 Text("Downloading…")
-                    .font(.system(size: 10))
-                    .foregroundColor(.secondary)
+                    .font(DS.Font.caption)
+                    .foregroundColor(DS.Color.secondary)
             }
         case .failed(let msg):
             Text("Failed")
-                .font(.system(size: 10))
-                .foregroundColor(Color(nsColor: .systemRed))
+                .font(DS.Font.caption)
+                .foregroundColor(DS.Color.error)
                 .help(msg)
         default:
             EmptyView()
@@ -464,31 +547,44 @@ struct FooterView: View {
 
     var body: some View {
         HStack {
+            // Keyboard shortcut hint — styled as a key cap (outline + caption type)
             if let shortcut = KeyboardShortcuts.getShortcut(for: .toggleRecording) {
                 Text(shortcut.description)
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundColor(.secondary)
-                    .padding(.horizontal, 6)
+                    .font(DS.Font.caption)
+                    .fontWeight(.medium)
+                    .foregroundColor(DS.Color.secondary)
+                    .padding(.horizontal, DS.Space.xs + 2)
                     .padding(.vertical, 2)
                     .background(
-                        RoundedRectangle(cornerRadius: 4, style: .continuous)
-                            .stroke(Color(nsColor: .quaternaryLabelColor), lineWidth: 0.5)
+                        RoundedRectangle(cornerRadius: DS.Radius.sm, style: .continuous)
+                            .stroke(DS.Color.divider, lineWidth: 0.5)
                     )
             }
 
             Spacer()
 
+            // Recording status word — recording red, label-caps weight
             if recordingManager.phase.isRecording {
                 Text("Recording")
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundColor(Color(nsColor: .systemRed))
+                    .font(DS.Font.labelCaps)
+                    .tracking(0.6)
+                    .foregroundColor(DS.Color.recording)
             }
+
+            // Quit affordance — ghost button, consistent with other tertiary actions
+            Button(action: { NSApplication.shared.terminate(nil) }) {
+                Image(systemName: "power")
+                    .imageScale(.small)
+            }
+            .buttonStyle(GhostButtonStyle())
+            .accessibilityLabel("Quit Glyph")
+            .help("Quit Glyph")
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
+        .padding(.horizontal, DS.Space.lg)
+        .padding(.vertical, DS.Space.sm)
         .overlay(alignment: .top) {
             Rectangle()
-                .fill(Color(nsColor: .separatorColor).opacity(0.3))
+                .fill(DS.Color.divider.opacity(0.5))
                 .frame(height: 0.5)
         }
     }
