@@ -101,6 +101,11 @@ struct IdleView: View {
                 ConfigurationBanner()
             }
 
+            if models.isBusy {
+                DownloadProgressView()
+                    .padding(.horizontal, 16)
+            }
+
             Button(action: {
                 if models.whisper != .ready || models.llm != .ready {
                     models.prepareAll()
@@ -108,17 +113,30 @@ struct IdleView: View {
                     recordingManager.startRecording()
                 }
             }) {
-                Label(models.whisper == .ready && models.llm == .ready
-                      ? "Start Recording"
-                      : "Download Models",
-                      systemImage: models.whisper == .ready && models.llm == .ready
-                      ? "record.circle"
-                      : "arrow.down.circle")
+                if models.isBusy {
+                    HStack(spacing: 6) {
+                        ProgressView()
+                            .controlSize(.small)
+                            .scaleEffect(0.7)
+                        Text("Downloading…")
+                    }
                     .font(.system(size: 13, weight: .semibold))
                     .frame(maxWidth: .infinity)
                     .frame(height: 32)
+                } else {
+                    Label(models.whisper == .ready && models.llm == .ready
+                          ? "Start Recording"
+                          : "Download Models",
+                          systemImage: models.whisper == .ready && models.llm == .ready
+                          ? "record.circle"
+                          : "arrow.down.circle")
+                        .font(.system(size: 13, weight: .semibold))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 32)
+                }
             }
             .buttonStyle(RecordButtonStyle())
+            .disabled(models.isBusy)
             .padding(.horizontal, 16)
 
             if let event = calendarManager.upcomingEvent {
@@ -136,18 +154,27 @@ struct ConfigurationBanner: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            Image(systemName: models.whisper == .ready && models.llm == .ready
-                  ? "checkmark.circle.fill"
-                  : "arrow.down.circle.fill")
-                .foregroundColor(models.whisper == .ready && models.llm == .ready
-                                 ? Color(nsColor: .systemGreen)
-                                 : Color(nsColor: .systemBlue))
-                .imageScale(.small)
-                .accessibilityHidden(true)
+            if models.isBusy {
+                ProgressView()
+                    .controlSize(.small)
+                    .scaleEffect(0.7)
+                    .imageScale(.small)
+            } else {
+                Image(systemName: models.whisper == .ready && models.llm == .ready
+                      ? "checkmark.circle.fill"
+                      : "arrow.down.circle.fill")
+                    .foregroundColor(models.whisper == .ready && models.llm == .ready
+                                     ? Color(nsColor: .systemGreen)
+                                     : Color(nsColor: .systemBlue))
+                    .imageScale(.small)
+                    .accessibilityHidden(true)
+            }
 
-            Text(models.whisper == .ready && models.llm == .ready
-                 ? "Ready to record — on-device."
-                 : "Download on-device models to begin.")
+            Text(models.isBusy
+                 ? "Downloading on-device models…"
+                 : (models.whisper == .ready && models.llm == .ready
+                    ? "Ready to record — on-device."
+                    : "Download on-device models to begin."))
                 .font(.system(size: 11))
                 .foregroundColor(.secondary)
 
@@ -356,6 +383,76 @@ struct HistoryRow: View {
         case .completed: return Color(nsColor: .systemGreen)
         case .processing, .recording: return Color(nsColor: .systemOrange)
         case .failed: return Color(nsColor: .systemRed)
+        }
+    }
+}
+
+// MARK: - Download Progress
+
+struct DownloadProgressView: View {
+    @StateObject private var models = ModelManager.shared
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if let name = models.activeWhisperDownload {
+                ModelDownloadRow(label: "Whisper \(name)", state: models.whisper)
+            }
+            if let id = models.activeLLMDownload {
+                let shortName = id.split(separator: "/").last.map(String.init) ?? id
+                ModelDownloadRow(label: shortName, state: models.llm)
+            }
+        }
+        .padding(10)
+        .background(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(Color(nsColor: .controlBackgroundColor))
+        )
+    }
+}
+
+private struct ModelDownloadRow: View {
+    let label: String
+    let state: ModelManager.State
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text(label)
+                    .font(.system(size: 11, weight: .medium))
+                Spacer()
+                stateLabel
+            }
+            if case .preparing(let frac) = state, let frac {
+                ProgressView(value: frac)
+                    .progressViewStyle(.linear)
+                    .tint(Color(nsColor: .systemBlue))
+            } else if case .preparing(nil) = state {
+                ProgressView()
+                    .progressViewStyle(.linear)
+                    .tint(Color(nsColor: .systemBlue))
+            }
+        }
+    }
+
+    @ViewBuilder private var stateLabel: some View {
+        switch state {
+        case .preparing(let frac):
+            if let frac {
+                Text("\(Int(frac * 100))%")
+                    .font(.system(size: 10).monospacedDigit())
+                    .foregroundColor(.secondary)
+            } else {
+                Text("Downloading…")
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary)
+            }
+        case .failed(let msg):
+            Text("Failed")
+                .font(.system(size: 10))
+                .foregroundColor(Color(nsColor: .systemRed))
+                .help(msg)
+        default:
+            EmptyView()
         }
     }
 }

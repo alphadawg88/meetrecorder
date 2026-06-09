@@ -35,7 +35,11 @@ actor ClaudeService: Summarizer {
             throw ClaudeError.parseError
         }
 
-        return try AIOutput.parse(from: text)
+        do {
+            return try AIOutput.parse(from: text)
+        } catch {
+            return AIOutput.rawFallback(text, transcript: transcript)
+        }
     }
 }
 

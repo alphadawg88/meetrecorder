@@ -11,8 +11,16 @@ extension NSColor {
     convenience init(hex: String) {
         let s = hex.trimmingCharacters(in: CharacterSet(charactersIn: "# "))
         var rgb: UInt64 = 0
-        Scanner(string: s).scanHexInt64(&rgb)
+        let scanner = Scanner(string: s)
+        let success = scanner.scanHexInt64(&rgb)
+
         let r, g, b, a: CGFloat
+        if !success || s.isEmpty {
+            // Fallback to a sensible default on parse failure
+            self.init(srgbRed: 0.96, green: 0.96, blue: 0.96, alpha: 1) // light gray
+            return
+        }
+
         switch s.count {
         case 8:
             r = CGFloat((rgb & 0xFF00_0000) >> 24) / 255
@@ -87,42 +95,95 @@ struct ModelCard: View {
     let tag: String
     let size: String
     @Binding var selected: String
+    var isDownloaded: Bool = false
+    var isActiveDownload: Bool = false
+    var downloadState: ModelManager.State = .notReady
+    var onUninstall: (() -> Void)? = nil
 
     var isSelected: Bool { selected == id }
 
-    var body: some View {
-        HStack(spacing: 10) {
-            Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                .foregroundColor(isSelected ? Color(nsColor: .systemBlue) : .secondary)
-                .imageScale(.small)
+    private var progressText: String {
+        switch downloadState {
+        case .preparing(nil):
+            return "Downloading…"
+        case .preparing(let frac?):
+            return "\(Int(frac * 100))%"
+        default:
+            return ""
+        }
+    }
 
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 6) {
-                    Text(name)
-                        .font(.system(size: 12, weight: .medium))
-                    Text(tag)
-                        .font(.system(size: 10, weight: .semibold))
-                        .padding(.horizontal, 5)
-                        .padding(.vertical, 1)
-                        .background(Color(nsColor: .systemBlue).opacity(0.1))
-                        .foregroundColor(Color(nsColor: .systemBlue))
-                        .clipShape(Capsule())
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 10) {
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .foregroundColor(isSelected ? Color(nsColor: .systemBlue) : .secondary)
+                    .imageScale(.small)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 6) {
+                        Text(name)
+                            .font(.system(size: 12, weight: .medium))
+                        Text(tag)
+                            .font(.system(size: 10, weight: .semibold))
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 1)
+                            .background(Color(nsColor: .systemBlue).opacity(0.1))
+                            .foregroundColor(Color(nsColor: .systemBlue))
+                            .clipShape(Capsule())
+                    }
+                    Text(size)
+                        .font(.system(size: 10))
+                        .foregroundColor(.secondary)
                 }
-                Text(size)
-                    .font(.system(size: 10))
-                    .foregroundColor(.secondary)
+
+                Spacer()
+
+                if isActiveDownload {
+                    ProgressView()
+                        .controlSize(.small)
+                        .scaleEffect(0.7)
+                } else if isDownloaded {
+                    HStack(spacing: 4) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(Color(nsColor: .systemGreen))
+                            .imageScale(.small)
+                        Text("Downloaded")
+                            .font(.system(size: 10))
+                            .foregroundColor(Color(nsColor: .systemGreen))
+                        if let onUninstall = onUninstall {
+                            Button(action: onUninstall) {
+                                Image(systemName: "trash")
+                                    .imageScale(.small)
+                                    .foregroundColor(.secondary)
+                            }
+                            .buttonStyle(GhostButtonStyle())
+                            .help("Remove downloaded model files")
+                        }
+                    }
+                }
+            }
+            .padding(8)
+            .background(
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .fill(isSelected ? Color(nsColor: .selectedControlColor).opacity(0.3) : Color.clear)
+            )
+            .contentShape(Rectangle())
+            .onTapGesture {
+                selected = id
             }
 
-            Spacer()
-        }
-        .padding(8)
-        .background(
-            RoundedRectangle(cornerRadius: 6, style: .continuous)
-                .fill(isSelected ? Color(nsColor: .selectedControlColor).opacity(0.3) : Color.clear)
-        )
-        .contentShape(Rectangle())
-        .onTapGesture {
-            selected = id
+            if isActiveDownload {
+                HStack(spacing: 4) {
+                    ProgressView()
+                        .controlSize(.mini)
+                        .scaleEffect(0.7)
+                    Text(progressText)
+                        .font(.system(size: 10))
+                        .foregroundColor(.secondary)
+                }
+                .padding(.horizontal, 8)
+            }
         }
     }
 }

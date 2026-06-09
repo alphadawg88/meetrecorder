@@ -34,6 +34,10 @@ enum AudioMixer {
 
         await exportSession.export()
         if exportSession.status == .completed {
+            // Only delete the source recordings once the mix is safely written —
+            // otherwise a failed export would destroy the only copy of the audio.
+            try? FileManager.default.removeItem(at: micURL)
+            try? FileManager.default.removeItem(at: systemURL)
             return outputURL
         } else {
             throw MixError.exportFailed(exportSession.error)

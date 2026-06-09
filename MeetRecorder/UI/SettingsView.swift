@@ -26,50 +26,83 @@ struct SettingsView: View {
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundColor(.secondary)
 
-                    ModelCard(id: "large-v3",
-                              name: "Whisper large-v3",
-                              tag: "Most accurate",
-                              size: "~1.5 GB",
-                              selected: $settings.whisperModel)
-                    ModelCard(id: "small",
-                              name: "Whisper small",
-                              tag: "Fast & light",
-                              size: "~244 MB",
-                              selected: $settings.whisperModel)
+                    ModelCard(
+                        id: "large-v3",
+                        name: "Whisper large-v3",
+                        tag: "Most accurate",
+                        size: "~1.5 GB",
+                        selected: $settings.whisperModel,
+                        isDownloaded: models.isWhisperDownloaded("large-v3"),
+                        isActiveDownload: models.activeWhisperDownload == "large-v3",
+                        downloadState: models.activeWhisperDownload == "large-v3" ? models.whisper : .notReady,
+                        onUninstall: models.isWhisperDownloaded("large-v3") ? { models.uninstallWhisper("large-v3") } : nil
+                    )
+                    ModelCard(
+                        id: "small",
+                        name: "Whisper small",
+                        tag: "Fast & light",
+                        size: "~244 MB",
+                        selected: $settings.whisperModel,
+                        isDownloaded: models.isWhisperDownloaded("small"),
+                        isActiveDownload: models.activeWhisperDownload == "small",
+                        downloadState: models.activeWhisperDownload == "small" ? models.whisper : .notReady,
+                        onUninstall: models.isWhisperDownloaded("small") ? { models.uninstallWhisper("small") } : nil
+                    )
 
                     Divider().padding(.vertical, 4)
 
-                    Text("Summary")
+                    Text("Analysis")
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundColor(.secondary)
 
-                    ModelCard(id: "mlx-community/Qwen2.5-7B-Instruct-4bit",
-                              name: "Qwen 2.5 7B",
-                              tag: "Bilingual best",
-                              size: "~4.2 GB",
-                              selected: $settings.localLLMModelID)
-                    ModelCard(id: "mlx-community/Qwen2.5-3B-Instruct-4bit",
-                              name: "Qwen 2.5 3B",
-                              tag: "Light & fast",
-                              size: "~1.8 GB",
-                              selected: $settings.localLLMModelID)
-                    ModelCard(id: "mlx-community/Meta-Llama-3.1-8B-Instruct-4bit",
-                              name: "Llama 3.1 8B",
-                              tag: "Long context",
-                              size: "~4.5 GB",
-                              selected: $settings.localLLMModelID)
-                    ModelCard(id: "mlx-community/DeepSeek-R1-Distill-Qwen-7B-4bit",
-                              name: "DeepSeek R1 7B",
-                              tag: "Deep reasoning",
-                              size: "~4.5 GB",
-                              selected: $settings.localLLMModelID)
+                    ModelCard(
+                        id: "mlx-community/Qwen2.5-7B-Instruct-4bit",
+                        name: "Qwen 2.5 7B",
+                        tag: "Bilingual best",
+                        size: "~4.2 GB",
+                        selected: $settings.localLLMModelID,
+                        isDownloaded: models.isLLMDownloaded("mlx-community/Qwen2.5-7B-Instruct-4bit"),
+                        isActiveDownload: models.activeLLMDownload == "mlx-community/Qwen2.5-7B-Instruct-4bit",
+                        downloadState: models.activeLLMDownload == "mlx-community/Qwen2.5-7B-Instruct-4bit" ? models.llm : .notReady,
+                        onUninstall: models.isLLMDownloaded("mlx-community/Qwen2.5-7B-Instruct-4bit") ? { models.uninstallLLM("mlx-community/Qwen2.5-7B-Instruct-4bit") } : nil
+                    )
+                    ModelCard(
+                        id: "mlx-community/Qwen2.5-3B-Instruct-4bit",
+                        name: "Qwen 2.5 3B",
+                        tag: "Light & fast",
+                        size: "~1.8 GB",
+                        selected: $settings.localLLMModelID,
+                        isDownloaded: models.isLLMDownloaded("mlx-community/Qwen2.5-3B-Instruct-4bit"),
+                        isActiveDownload: models.activeLLMDownload == "mlx-community/Qwen2.5-3B-Instruct-4bit",
+                        downloadState: models.activeLLMDownload == "mlx-community/Qwen2.5-3B-Instruct-4bit" ? models.llm : .notReady,
+                        onUninstall: models.isLLMDownloaded("mlx-community/Qwen2.5-3B-Instruct-4bit") ? { models.uninstallLLM("mlx-community/Qwen2.5-3B-Instruct-4bit") } : nil
+                    )
+                    ModelCard(
+                        id: "mlx-community/Meta-Llama-3.1-8B-Instruct-4bit",
+                        name: "Llama 3.1 8B",
+                        tag: "Long context",
+                        size: "~4.5 GB",
+                        selected: $settings.localLLMModelID,
+                        isDownloaded: models.isLLMDownloaded("mlx-community/Meta-Llama-3.1-8B-Instruct-4bit"),
+                        isActiveDownload: models.activeLLMDownload == "mlx-community/Meta-Llama-3.1-8B-Instruct-4bit",
+                        downloadState: models.activeLLMDownload == "mlx-community/Meta-Llama-3.1-8B-Instruct-4bit" ? models.llm : .notReady,
+                        onUninstall: models.isLLMDownloaded("mlx-community/Meta-Llama-3.1-8B-Instruct-4bit") ? { models.uninstallLLM("mlx-community/Meta-Llama-3.1-8B-Instruct-4bit") } : nil
+                    )
+                    ModelCard(
+                        id: "mlx-community/DeepSeek-R1-Distill-Qwen-7B-4bit",
+                        name: "DeepSeek R1 7B",
+                        tag: "Deep reasoning",
+                        size: "~4.5 GB",
+                        selected: $settings.localLLMModelID,
+                        isDownloaded: models.isLLMDownloaded("mlx-community/DeepSeek-R1-Distill-Qwen-7B-4bit"),
+                        isActiveDownload: models.activeLLMDownload == "mlx-community/DeepSeek-R1-Distill-Qwen-7B-4bit",
+                        downloadState: models.activeLLMDownload == "mlx-community/DeepSeek-R1-Distill-Qwen-7B-4bit" ? models.llm : .notReady,
+                        onUninstall: models.isLLMDownloaded("mlx-community/DeepSeek-R1-Distill-Qwen-7B-4bit") ? { models.uninstallLLM("mlx-community/DeepSeek-R1-Distill-Qwen-7B-4bit") } : nil
+                    )
 
                     Divider().padding(.vertical, 4)
 
-                    ModelStatusRow(label: "Transcription · WhisperKit", state: models.whisper)
-                    ModelStatusRow(label: "Summary · MLX", state: models.llm)
-
-                    Button(models.isBusy ? "Downloading…" : "Download / load on-device models") {
+                    Button(models.isBusy ? "Downloading…" : (models.isWhisperDownloaded(settings.whisperModel) && models.isLLMDownloaded(settings.localLLMModelID) ? "Models ready ✓" : "Download selected models")) {
                         models.prepareAll()
                     }
                     .buttonStyle(SecondaryButtonStyle())
@@ -154,42 +187,5 @@ struct SettingsView: View {
             Spacer()
         }
         .frame(width: 480, height: 640)
-    }
-}
-
-private struct ModelStatusRow: View {
-    let label: String
-    let state: ModelManager.State
-
-    var body: some View {
-        HStack(spacing: 8) {
-            Text(label)
-                .font(.system(size: 11))
-            Spacer()
-            switch state {
-            case .notReady:
-                Text("Not downloaded")
-                    .font(.system(size: 11))
-                    .foregroundColor(.secondary)
-            case .preparing(let frac):
-                if let frac {
-                    Text("\(Int(frac * 100))%")
-                        .font(.system(size: 11))
-                        .monospacedDigit()
-                        .foregroundColor(.secondary)
-                } else {
-                    ProgressView().controlSize(.small).scaleEffect(0.7)
-                }
-            case .ready:
-                Label("Ready", systemImage: "checkmark.circle.fill")
-                    .font(.system(size: 11))
-                    .foregroundColor(Color(nsColor: .systemGreen))
-            case .failed(let msg):
-                Label("Failed", systemImage: "exclamationmark.triangle.fill")
-                    .font(.system(size: 11))
-                    .foregroundColor(Color(nsColor: .systemOrange))
-                    .help(msg)
-            }
-        }
     }
 }

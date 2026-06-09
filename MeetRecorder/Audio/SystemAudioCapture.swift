@@ -5,10 +5,13 @@ actor SystemAudioCapture: NSObject, SCStreamOutput {
     private var stream: SCStream?
     private var assetWriter: AVAssetWriter?
     private var audioInput: AVAssetWriterInput?
-    private let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("system_\(UUID().uuidString).m4a")
+    private var tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("system_\(UUID().uuidString).m4a")
     private var isReady = false
+    // Serial queue so sample buffers are delivered (and enqueued to the actor) in arrival order.
+    private let sampleQueue = DispatchQueue(label: "com.alfredwong.glyph.systemaudio.samples")
 
     func start() async throws {
+        tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("system_\(UUID().uuidString).m4a")
         let content = try await SCShareableContent.current
         guard let display = content.displays.first else {
             throw CaptureError.noDisplay
@@ -31,17 +34,21 @@ actor SystemAudioCapture: NSObject, SCStreamOutput {
         audioInput = AVAssetWriterInput(mediaType: .audio, outputSettings: outputSettings)
         audioInput?.expectsMediaDataInRealTime = true
         if let input = audioInput { assetWriter?.add(input) }
-        assetWriter?.startWriting()
+        guard assetWriter?.startWriting() == true else {
+            throw CaptureError.writerStartFailed(assetWriter?.error)
+        }
 
         stream = SCStream(filter: filter, configuration: config, delegate: nil)
-        try stream?.addStreamOutput(self, type: .audio, sampleHandlerQueue: .global())
+        try stream?.addStreamOutput(self, type: .audio, sampleHandlerQueue: sampleQueue)
         try await stream?.startCapture()
     }
 
-    func stop() -> URL {
-        stream?.stopCapture()
+    func stop() async -> URL {
+        try? await stream?.stopCapture()
         audioInput?.markAsFinished()
-        assetWriter?.finishWriting {}
+        await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
+            assetWriter?.finishWriting { cont.resume() }
+        }
         return tempURL
     }
 
@@ -65,4 +72,5 @@ actor SystemAudioCapture: NSObject, SCStreamOutput {
 
 enum CaptureError: Error {
     case noDisplay
+    case writerStartFailed(Error?)
 }

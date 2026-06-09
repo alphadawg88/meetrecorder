@@ -9,6 +9,7 @@ final class CalendarManager: ObservableObject {
 
     private let eventStore = EKEventStore()
     private var timer: Timer?
+    private var notifiedEventIDs: Set<String> = []
 
     func requestAccess() {
         if #available(macOS 14.0, *) {
@@ -31,20 +32,29 @@ final class CalendarManager: ObservableObject {
     func startMonitoring() {
         timer?.invalidate()
         timer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
-            self?.checkUpcomingEvents()
+            // Timer callbacks are nonisolated; hop to the main actor before touching state.
+            Task { @MainActor in self?.checkUpcomingEvents() }
         }
         checkUpcomingEvents()
     }
 
     func checkUpcomingEvents() {
+        guard hasAccess else { return }
         let calendars = eventStore.calendars(for: .event)
         let now = Date()
         let predicate = eventStore.predicateForEvents(withStart: now, end: now.addingTimeInterval(3600), calendars: calendars)
-        let events = eventStore.events(matching: predicate)
+        let events = eventStore.events(matching: predicate).sorted { $0.startDate < $1.startDate }
 
-        if let next = events.first(where: { $0.startDate.timeIntervalSince(now) <= 300 && $0.startDate > now }) {
+        // Surface the next future event (within the hour) for the UI card…
+        if let next = events.first(where: { $0.startDate > now }) {
             if upcomingEvent?.eventIdentifier != next.eventIdentifier {
                 upcomingEvent = next
+            }
+            // …but only notify once, when it's within five minutes of starting.
+            if let id = next.eventIdentifier,
+               next.startDate.timeIntervalSince(now) <= 300,
+               !notifiedEventIDs.contains(id) {
+                notifiedEventIDs.insert(id)
                 notifyMeetingStart(event: next)
             }
         } else {

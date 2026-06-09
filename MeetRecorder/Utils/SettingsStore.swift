@@ -52,7 +52,8 @@ final class SettingsStore: ObservableObject {
 
     var vaultURL: URL {
         if vaultPath.isEmpty {
-            let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+            let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
+                ?? FileManager.default.temporaryDirectory
             return docs.appendingPathComponent("GlyphVault")
         }
         return URL(fileURLWithPath: vaultPath)

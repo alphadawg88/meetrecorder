@@ -25,6 +25,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.accessory)
         NotificationManager.register()
         KeyboardShortcuts.onKeyUp(for: .toggleRecording) {
+            guard SettingsStore.shared.globalShortcutEnabled else { return }
             NotificationCenter.default.post(name: .toggleRecording, object: nil)
         }
 
@@ -34,11 +35,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Inject calendar manager after both are ready.
         recordingManager.inject(calendarManager: calendarManager)
 
-        // Observe recording state to swap the status-bar icon.
-        recordingManager.$isRecording
+        // Request calendar access at launch.
+        calendarManager.requestAccess()
+
+        // Observe recording and processing states to update the status-bar icon + progress.
+        Publishers.CombineLatest(recordingManager.$isRecording, recordingManager.$processingStage)
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] isRecording in
-                self?.updateStatusIcon(isRecording: isRecording)
+            .sink { [weak self] isRecording, stage in
+                self?.updateStatusIcon(
+                    isRecording: isRecording,
+                    processingStage: stage,
+                    progress: RecordingManager.progress(for: stage)
+                )
             }
             .store(in: &cancellables)
     }
@@ -79,15 +87,24 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func updateStatusIcon(isRecording: Bool) {
+    private func updateStatusIcon(isRecording: Bool, processingStage: String, progress: Double) {
         guard let button = statusItem.button else { return }
+        let isProcessing = !processingStage.isEmpty
         if isRecording {
             button.image = NSImage(systemSymbolName: "waveform.circle.fill", accessibilityDescription: "Recording")
             button.contentTintColor = .systemRed
+            button.title = ""
+        } else if isProcessing {
+            button.image = NSImage(systemSymbolName: "ellipsis.circle.fill", accessibilityDescription: "Processing")
+            button.contentTintColor = .systemOrange
+            button.title = " \(Int(progress * 100))%"
+            button.toolTip = processingStage
         } else {
             button.image = NSImage(named: "MenuBarIcon")
             button.image?.isTemplate = true
             button.contentTintColor = nil
+            button.title = ""
+            button.toolTip = nil
         }
     }
 

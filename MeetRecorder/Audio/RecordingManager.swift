@@ -54,6 +54,18 @@ final class RecordingManager: ObservableObject {
         return .idle
     }
 
+    /// Maps a processing stage label → 0…1 fraction for the menu bar progress display.
+    static func progress(for stage: String) -> Double {
+        switch stage {
+        case let s where s.contains("Finalizing"):   return 0.10
+        case let s where s.contains("Transcrib"):    return 0.40
+        case let s where s.contains("Analyz"),
+             let s where s.contains("Summariz"):     return 0.70
+        case let s where s.contains("Export"):       return 0.90
+        default:                                     return stage.isEmpty ? 0 : 0.50
+        }
+    }
+
     func toggleRecording() {
         isRecording ? stopRecording() : startRecording()
     }
@@ -72,6 +84,7 @@ final class RecordingManager: ObservableObject {
         )
         currentRecord = record
         isRecording = true
+        NotificationManager.notify(title: "Glyph is recording", body: "Tap the menu bar icon to stop.")
 
         Task {
             do {
@@ -80,8 +93,12 @@ final class RecordingManager: ObservableObject {
                 scheduleAutoStop(eventID: calendarEventID)
             } catch {
                 await handleError(error, context: "Failed to start audio capture")
-                _ = await micCapture.stop()
-                _ = await systemCapture.stop()
+                async let micStop2 = micCapture.stop()
+                async let sysStop2 = systemCapture.stop()
+                let (micURL, sysURL) = await (micStop2, sysStop2)
+                // The start failed — discard any partial temp recordings.
+                try? FileManager.default.removeItem(at: micURL)
+                try? FileManager.default.removeItem(at: sysURL)
             }
         }
     }
@@ -108,8 +125,9 @@ final class RecordingManager: ObservableObject {
 
         Task {
             do {
-                let micURL = await micCapture.stop()
-                let sysURL = await systemCapture.stop()
+                async let micStop = micCapture.stop()
+                async let sysStop = systemCapture.stop()
+                let (micURL, sysURL) = await (micStop, sysStop)
                 let mixedURL = try await AudioMixer.mix(micURL: micURL, systemURL: sysURL)
 
                 record = MeetingRecord(
@@ -140,15 +158,19 @@ final class RecordingManager: ObservableObject {
         guard interval > 0 else { return }
 
         autoStopTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: false) { [weak self] _ in
-            guard let self = self, self.isRecording else { return }
-            self.stopRecording()
-            NotificationManager.notify(title: "Meeting Ended", body: "Auto-stopped recording. Processing transcript…")
+            // The Timer callback is nonisolated; hop to the main actor before touching
+            // @MainActor state (isRecording / stopRecording).
+            Task { @MainActor in
+                guard let self = self, self.isRecording else { return }
+                self.stopRecording()
+                NotificationManager.notify(title: "Meeting Ended", body: "Auto-stopped recording. Processing transcript…")
+            }
         }
     }
 
     private func processAudio(record: MeetingRecord, audioURL: URL) async {
         do {
-            let useCloud = settings.preferCloud && !settings.openAIKey.isEmpty && !settings.anthropicKey.isEmpty
+            let useCloud = settings.usesCloudAPI
             let transcriber: Transcriber = useCloud ? whisperService : localTranscriber
             let summarizer: Summarizer = useCloud ? claudeService : localSummarizer
 

@@ -34,10 +34,10 @@ struct MarkdownExporter {
         let yaml = """
 ---
 date: \(ISO8601DateFormatter().string(from: record.startTime))
-duration: \(record.formattedDuration)
-title: \(record.title)
+duration: "\(record.formattedDuration)"
+title: "\(record.title.replacingOccurrences(of: "\"", with: "\\\""))"
 tags: [\(tags.map { "\"\($0)\"" }.joined(separator: ", "))]
-source_language: auto-detected
+source_language: \(SettingsStore.shared.sourceLanguage)
 target_language: \(SettingsStore.shared.targetLanguage)
 ---
 
