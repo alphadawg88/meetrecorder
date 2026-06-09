@@ -13,10 +13,42 @@ final class SettingsStore: ObservableObject {
     @AppStorage("autoStop") var autoStop: Bool = false
     @AppStorage("globalShortcutEnabled") var globalShortcutEnabled: Bool = true
 
-    // On-device / Offline processing (cloud remains the default).
-    @AppStorage("offlineMode") var offlineMode: Bool = false
-    // Local LLM size tier: "auto" (pick by RAM), "8b", or "4b".
-    @AppStorage("localLLMTier") var localLLMTier: String = "auto"
+    // On-device is the default. Cloud APIs are an opt-in enhancement: they are
+    // only used when the user prefers them AND both keys are present.
+    @AppStorage("preferCloud") var preferCloud: Bool = false
+
+    // Selected on-device transcription model (WhisperKit).
+    @AppStorage("whisperModel") var whisperModel: String = "large-v3"
+    // Selected on-device summary model (full MLX HuggingFace model id).
+    @AppStorage("localLLMModelID") var localLLMModelID: String = "mlx-community/Qwen2.5-7B-Instruct-4bit"
+
+    private init() {
+        migrate()
+    }
+
+    /// One-time migration from the old "modes & tiers" model to local-first.
+    private func migrate() {
+        let defaults = UserDefaults.standard
+
+        // offlineMode → preferCloud. The old `offlineMode == false` meant the
+        // user was on cloud, so that maps to `preferCloud == true`.
+        if defaults.object(forKey: "offlineMode") != nil {
+            let wasOffline = defaults.bool(forKey: "offlineMode")
+            defaults.set(!wasOffline, forKey: "preferCloud")
+            defaults.removeObject(forKey: "offlineMode")
+        }
+
+        // localLLMTier (auto / 8b / 4b) → full localLLMModelID.
+        if let tier = defaults.string(forKey: "localLLMTier") {
+            let qwen7B = "mlx-community/Qwen2.5-7B-Instruct-4bit"
+            let qwen3B = "mlx-community/Qwen2.5-3B-Instruct-4bit"
+            switch tier {
+            case "4b": defaults.set(qwen3B, forKey: "localLLMModelID")
+            default:   defaults.set(qwen7B, forKey: "localLLMModelID")  // "8b" / "auto" → best
+            }
+            defaults.removeObject(forKey: "localLLMTier")
+        }
+    }
 
     var vaultURL: URL {
         if vaultPath.isEmpty {
@@ -26,7 +58,15 @@ final class SettingsStore: ObservableObject {
         return URL(fileURLWithPath: vaultPath)
     }
 
+    /// Local mode is always "configured" as a concept; readiness is handled by
+    /// ModelManager. Cloud mode requires keys.
     var isConfigured: Bool {
-        !openAIKey.isEmpty && !anthropicKey.isEmpty
+        if !preferCloud { return true }
+        return !openAIKey.isEmpty && !anthropicKey.isEmpty
+    }
+
+    /// True if the user has opted into cloud APIs and both keys are present.
+    var usesCloudAPI: Bool {
+        preferCloud && !openAIKey.isEmpty && !anthropicKey.isEmpty
     }
 }

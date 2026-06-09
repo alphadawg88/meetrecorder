@@ -20,42 +20,67 @@ struct SettingsView: View {
             .background(.ultraThinMaterial)
 
             Form {
+                // MARK: - On-device models (primary)
                 Section {
-                    Toggle("On-device mode — private & offline", isOn: $settings.offlineMode)
-                    if settings.offlineMode {
-                        Picker("Summary model", selection: $settings.localLLMTier) {
-                            Text("Auto (by RAM)").tag("auto")
-                            Text("Qwen2.5 7B").tag("8b")
-                            Text("Qwen2.5 3B (light)").tag("4b")
-                        }
-                        Text("Runs WhisperKit + a local LLM on this Mac — no data leaves the device. Models download on first use (~6 GB). On-device Cantonese is good but below cloud; use cloud for nuanced Cantonese translation.")
-                            .font(.system(size: 11))
-                            .foregroundColor(.secondary)
+                    Text("Transcription")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.secondary)
 
-                        ModelStatusRow(label: "Transcription · WhisperKit large-v3", state: models.whisper)
-                        ModelStatusRow(label: "Summary · Qwen2.5", state: models.llm)
+                    ModelCard(id: "large-v3",
+                              name: "Whisper large-v3",
+                              tag: "Most accurate",
+                              size: "~1.5 GB",
+                              selected: $settings.whisperModel)
+                    ModelCard(id: "small",
+                              name: "Whisper small",
+                              tag: "Fast & light",
+                              size: "~244 MB",
+                              selected: $settings.whisperModel)
 
-                        Button(models.isBusy ? "Downloading…" : "Download / load on-device models") {
-                            models.prepareAll()
-                        }
-                        .buttonStyle(SecondaryButtonStyle())
-                        .disabled(models.isBusy)
+                    Divider().padding(.vertical, 4)
+
+                    Text("Summary")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.secondary)
+
+                    ModelCard(id: "mlx-community/Qwen2.5-7B-Instruct-4bit",
+                              name: "Qwen 2.5 7B",
+                              tag: "Bilingual best",
+                              size: "~4.2 GB",
+                              selected: $settings.localLLMModelID)
+                    ModelCard(id: "mlx-community/Qwen2.5-3B-Instruct-4bit",
+                              name: "Qwen 2.5 3B",
+                              tag: "Light & fast",
+                              size: "~1.8 GB",
+                              selected: $settings.localLLMModelID)
+                    ModelCard(id: "mlx-community/Meta-Llama-3.1-8B-Instruct-4bit",
+                              name: "Llama 3.1 8B",
+                              tag: "Long context",
+                              size: "~4.5 GB",
+                              selected: $settings.localLLMModelID)
+                    ModelCard(id: "mlx-community/DeepSeek-R1-Distill-Qwen-7B-4bit",
+                              name: "DeepSeek R1 7B",
+                              tag: "Deep reasoning",
+                              size: "~4.5 GB",
+                              selected: $settings.localLLMModelID)
+
+                    Divider().padding(.vertical, 4)
+
+                    ModelStatusRow(label: "Transcription · WhisperKit", state: models.whisper)
+                    ModelStatusRow(label: "Summary · MLX", state: models.llm)
+
+                    Button(models.isBusy ? "Downloading…" : "Download / load on-device models") {
+                        models.prepareAll()
                     }
+                    .buttonStyle(SecondaryButtonStyle())
+                    .disabled(models.isBusy)
                 } header: {
-                    Text("Processing engine")
+                    Text("On-device models")
                         .font(.system(size: 10, weight: .semibold))
                         .tracking(0.5)
                 }
 
-                Section {
-                    SecureField("OpenAI API Key", text: $settings.openAIKey)
-                    SecureField("Anthropic API Key", text: $settings.anthropicKey)
-                } header: {
-                    Text("API Keys (cloud mode)")
-                        .font(.system(size: 10, weight: .semibold))
-                        .tracking(0.5)
-                }
-
+                // MARK: - Output
                 Section {
                     HStack(spacing: 8) {
                         TextField("Vault Path", text: $settings.vaultPath)
@@ -91,6 +116,7 @@ struct SettingsView: View {
                         .tracking(0.5)
                 }
 
+                // MARK: - Automation
                 Section {
                     Toggle("Calendar Reminders", isOn: $settings.calendarReminders)
                     Toggle("Auto-stop on Event End", isOn: $settings.autoStop)
@@ -103,13 +129,31 @@ struct SettingsView: View {
                         .font(.system(size: 10, weight: .semibold))
                         .tracking(0.5)
                 }
+
+                // MARK: - Cloud enhancement (optional, at bottom)
+                Section {
+                    Toggle("Prefer cloud when keys are set", isOn: $settings.preferCloud)
+
+                    if settings.preferCloud {
+                        SecureField("OpenAI API Key", text: $settings.openAIKey)
+                        SecureField("Anthropic API Key", text: $settings.anthropicKey)
+                    }
+                } header: {
+                    Text("Cloud enhancement (optional)")
+                        .font(.system(size: 10, weight: .semibold))
+                        .tracking(0.5)
+                } footer: {
+                    Text("Cloud APIs improve nuanced translation — especially Cantonese slang and idioms. Not required for most meetings.")
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                }
             }
             .formStyle(.grouped)
             .padding(.top, 8)
 
             Spacer()
         }
-        .frame(width: 480, height: 560)
+        .frame(width: 480, height: 640)
     }
 }
 

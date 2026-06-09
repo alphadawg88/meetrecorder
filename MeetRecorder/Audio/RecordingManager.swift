@@ -148,14 +148,14 @@ final class RecordingManager: ObservableObject {
 
     private func processAudio(record: MeetingRecord, audioURL: URL) async {
         do {
-            let offline = settings.offlineMode
-            let transcriber: Transcriber = offline ? localTranscriber : whisperService
-            let summarizer: Summarizer = offline ? localSummarizer : claudeService
+            let useCloud = settings.preferCloud && !settings.openAIKey.isEmpty && !settings.anthropicKey.isEmpty
+            let transcriber: Transcriber = useCloud ? whisperService : localTranscriber
+            let summarizer: Summarizer = useCloud ? claudeService : localSummarizer
 
-            processingStage = offline ? "Transcribing on-device…" : "Transcribing with Whisper…"
+            processingStage = useCloud ? "Transcribing with Whisper…" : "Transcribing on-device…"
             let transcript = try await transcriber.transcribe(audioURL: audioURL)
 
-            processingStage = offline ? "Summarizing on-device…" : "Analyzing with Claude…"
+            processingStage = useCloud ? "Analyzing with Claude…" : "Summarizing on-device…"
             let aiOutput = try await summarizer.process(
                 transcript: transcript,
                 targetLanguage: settings.targetLanguage,

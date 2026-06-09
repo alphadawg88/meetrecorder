@@ -8,10 +8,11 @@ struct ContentView: View {
     @EnvironmentObject var recordingManager: RecordingManager
     @EnvironmentObject var calendarManager: CalendarManager
     @State private var showingSettings = false
+    @State private var showingHelp = false
 
     var body: some View {
         VStack(spacing: 0) {
-            HeaderView(showingSettings: $showingSettings)
+            HeaderView(showingSettings: $showingSettings, showingHelp: $showingHelp)
 
             Group {
                 switch recordingManager.phase {
@@ -39,6 +40,9 @@ struct ContentView: View {
         .sheet(isPresented: $showingSettings) {
             SettingsView()
         }
+        .sheet(isPresented: $showingHelp) {
+            HelpView()
+        }
     }
 }
 
@@ -46,6 +50,7 @@ struct ContentView: View {
 
 struct HeaderView: View {
     @Binding var showingSettings: Bool
+    @Binding var showingHelp: Bool
     @EnvironmentObject var recordingManager: RecordingManager
 
     var body: some View {
@@ -64,6 +69,13 @@ struct HeaderView: View {
 
             Spacer()
 
+            Button(action: { showingHelp.toggle() }) {
+                Image(systemName: "questionmark.circle")
+                    .imageScale(.medium)
+            }
+            .buttonStyle(GhostButtonStyle())
+            .accessibilityLabel("Help")
+
             Button(action: { showingSettings.toggle() }) {
                 Image(systemName: "gearshape")
                     .imageScale(.medium)
@@ -81,21 +93,32 @@ struct HeaderView: View {
 struct IdleView: View {
     @EnvironmentObject var recordingManager: RecordingManager
     @EnvironmentObject var calendarManager: CalendarManager
+    @StateObject private var models = ModelManager.shared
 
     var body: some View {
         VStack(spacing: 16) {
-            if !SettingsStore.shared.isConfigured {
+            if models.whisper != .ready || models.llm != .ready {
                 ConfigurationBanner()
             }
 
-            Button(action: { recordingManager.startRecording() }) {
-                Label("Start Recording", systemImage: "record.circle")
+            Button(action: {
+                if models.whisper != .ready || models.llm != .ready {
+                    models.prepareAll()
+                } else {
+                    recordingManager.startRecording()
+                }
+            }) {
+                Label(models.whisper == .ready && models.llm == .ready
+                      ? "Start Recording"
+                      : "Download Models",
+                      systemImage: models.whisper == .ready && models.llm == .ready
+                      ? "record.circle"
+                      : "arrow.down.circle")
                     .font(.system(size: 13, weight: .semibold))
                     .frame(maxWidth: .infinity)
                     .frame(height: 32)
             }
             .buttonStyle(RecordButtonStyle())
-            .disabled(!SettingsStore.shared.isConfigured)
             .padding(.horizontal, 16)
 
             if let event = calendarManager.upcomingEvent {
@@ -109,17 +132,22 @@ struct IdleView: View {
 
 struct ConfigurationBanner: View {
     @EnvironmentObject var recordingManager: RecordingManager
+    @StateObject private var models = ModelManager.shared
 
     var body: some View {
         HStack(spacing: 8) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .foregroundColor(Color(nsColor: .systemOrange))
+            Image(systemName: models.whisper == .ready && models.llm == .ready
+                  ? "checkmark.circle.fill"
+                  : "arrow.down.circle.fill")
+                .foregroundColor(models.whisper == .ready && models.llm == .ready
+                                 ? Color(nsColor: .systemGreen)
+                                 : Color(nsColor: .systemBlue))
                 .imageScale(.small)
                 .accessibilityHidden(true)
 
-            Text(SettingsStore.shared.offlineMode
-                 ? "Download on-device models in Settings to begin."
-                 : "Add API keys in Settings to begin.")
+            Text(models.whisper == .ready && models.llm == .ready
+                 ? "Ready to record — on-device."
+                 : "Download on-device models to begin.")
                 .font(.system(size: 11))
                 .foregroundColor(.secondary)
 
@@ -128,7 +156,7 @@ struct ConfigurationBanner: View {
         .padding(8)
         .background(
             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(Color(nsColor: .systemOrange).opacity(0.08))
+                .fill(Color(nsColor: .systemBlue).opacity(0.08))
         )
         .padding(.horizontal, 16)
     }

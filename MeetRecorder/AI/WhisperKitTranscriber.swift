@@ -9,14 +9,17 @@ actor WhisperKitTranscriber: Transcriber {
     static let shared = WhisperKitTranscriber()
 
     private var pipe: WhisperKit?
-    private let modelName = "large-v3"
+    private var loadedModelName: String?
 
     var isLoaded: Bool { pipe != nil }
 
-    /// Download (if needed) and load the model. Safe to call repeatedly.
+    /// Download (if needed) and load the selected model. Reloads if the user
+    /// changed the model in Settings. Safe to call repeatedly.
     func preload() async throws {
-        guard pipe == nil else { return }
-        pipe = try await WhisperKit(WhisperKitConfig(model: modelName, download: true))
+        let name = await SettingsStore.shared.whisperModel
+        if pipe != nil, loadedModelName == name { return }
+        pipe = try await WhisperKit(WhisperKitConfig(model: name, download: true))
+        loadedModelName = name
     }
 
     func transcribe(audioURL: URL) async throws -> String {

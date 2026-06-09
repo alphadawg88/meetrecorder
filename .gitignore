@@ -35,3 +35,7 @@ Package.resolved
 
 # Logs
 *.log
+
+# Local scratch build helper
+_build_check.sh
+build_check.log

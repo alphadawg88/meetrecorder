@@ -11,19 +11,6 @@ actor MLXSummarizer: Summarizer {
     private var container: ModelContainer?
     private var loadedModelID: String?
 
-    /// Resolve the HuggingFace model id from the user's tier setting (RAM-aware on "auto").
-    static func modelID(for tier: String) -> String {
-        let qwen7B = "mlx-community/Qwen2.5-7B-Instruct-4bit"
-        let qwen3B = "mlx-community/Qwen2.5-3B-Instruct-4bit"
-        switch tier {
-        case "8b": return qwen7B
-        case "4b": return qwen3B
-        default:
-            let gb = ProcessInfo.processInfo.physicalMemory / 1_073_741_824
-            return gb >= 16 ? qwen7B : qwen3B
-        }
-    }
-
     /// Download (if needed) and load the model, reporting 0...1 download progress.
     func preload(progress: (@Sendable (Double) -> Void)? = nil) async throws {
         let id = await Self.resolvedModelID()
@@ -56,6 +43,6 @@ actor MLXSummarizer: Summarizer {
     }
 
     private static func resolvedModelID() async -> String {
-        modelID(for: await SettingsStore.shared.localLLMTier)
+        await SettingsStore.shared.localLLMModelID
     }
 }

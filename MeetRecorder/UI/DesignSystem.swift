@@ -79,6 +79,54 @@ struct GhostButtonStyle: ButtonStyle {
     }
 }
 
+// MARK: - Model card
+
+struct ModelCard: View {
+    let id: String
+    let name: String
+    let tag: String
+    let size: String
+    @Binding var selected: String
+
+    var isSelected: Bool { selected == id }
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                .foregroundColor(isSelected ? Color(nsColor: .systemBlue) : .secondary)
+                .imageScale(.small)
+
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 6) {
+                    Text(name)
+                        .font(.system(size: 12, weight: .medium))
+                    Text(tag)
+                        .font(.system(size: 10, weight: .semibold))
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 1)
+                        .background(Color(nsColor: .systemBlue).opacity(0.1))
+                        .foregroundColor(Color(nsColor: .systemBlue))
+                        .clipShape(Capsule())
+                }
+                Text(size)
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary)
+            }
+
+            Spacer()
+        }
+        .padding(8)
+        .background(
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .fill(isSelected ? Color(nsColor: .selectedControlColor).opacity(0.3) : Color.clear)
+        )
+        .contentShape(Rectangle())
+        .onTapGesture {
+            selected = id
+        }
+    }
+}
+
 // MARK: - Status badge
 
 struct StatusBadge: View {
