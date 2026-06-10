@@ -177,6 +177,15 @@ struct SettingsView: View {
 
                 // MARK: Automation
                 Section {
+                    Toggle("Offer to record when a call starts", isOn: $settings.callDetectEnabled)
+                    Picker("Remind me every", selection: $settings.recordingReminderMinutes) {
+                        Text("Off").tag(0)
+                        Text("15 min").tag(15)
+                        Text("30 min").tag(30)
+                        Text("60 min").tag(60)
+                    }
+                    .pickerStyle(.segmented)
+
                     Toggle("Calendar Reminders", isOn: $settings.calendarReminders)
                     Toggle("Auto-stop on Event End", isOn: $settings.autoStop)
                     Toggle("Global Shortcut", isOn: $settings.globalShortcutEnabled)
@@ -186,6 +195,10 @@ struct SettingsView: View {
                 } header: {
                     Text("Automation")
                         .labelCaps()
+                        .foregroundColor(DS.Color.secondary)
+                } footer: {
+                    Text("A gentle nudge while you record — not an alarm.")
+                        .font(DS.Font.caption)
                         .foregroundColor(DS.Color.secondary)
                 }
 

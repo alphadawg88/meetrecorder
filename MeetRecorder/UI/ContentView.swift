@@ -356,11 +356,23 @@ struct RecordingView: View {
                         .foregroundColor(DS.Color.primary)
                         .lineLimit(1)
                     // Live elapsed timer — display token + monospacedDigit to prevent jitter.
+                    // Past 45 min, a gentle long-session cue: timer shifts to warning
+                    // amber and a passive "N min and counting" readout appears.
                     TimelineView(.periodic(from: record.startTime, by: 1)) { context in
-                        Text(Self.elapsed(since: record.startTime, now: context.date))
-                            .font(DS.Font.display)
-                            .monospacedDigit()
-                            .foregroundColor(DS.Color.primary)
+                        let total = max(0, Int(context.date.timeIntervalSince(record.startTime)))
+                        let isLongSession = total >= 2700   // 45 minutes
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(String(format: "%02d:%02d", total / 60, total % 60))
+                                .font(DS.Font.display)
+                                .monospacedDigit()
+                                .foregroundColor(isLongSession ? DesignToken.warning : DS.Color.primary)
+                                .animation(.easeInOut(duration: 0.4), value: isLongSession)
+                            if isLongSession {
+                                Text("\(total / 60) min and counting")
+                                    .font(DS.Font.caption)
+                                    .foregroundColor(DS.Color.secondary)
+                            }
+                        }
                     }
                 }
 
@@ -393,12 +405,6 @@ struct RecordingView: View {
                 .padding(.horizontal, DS.Space.md)
         )
         .padding(.vertical, DS.Space.xs)
-    }
-
-    private static func elapsed(since start: Date, now: Date) -> String {
-        let total = max(0, Int(now.timeIntervalSince(start)))
-        let m = total / 60, s = total % 60
-        return String(format: "%02d:%02d", m, s)
     }
 }
 

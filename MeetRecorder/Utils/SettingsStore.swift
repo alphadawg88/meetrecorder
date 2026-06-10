@@ -51,6 +51,13 @@ final class SettingsStore: ObservableObject {
     @AppStorage("autoStop") var autoStop: Bool = false
     @AppStorage("globalShortcutEnabled") var globalShortcutEnabled: Bool = true
 
+    // Offer to start recording when any app starts using the mic (a call begins).
+    // On by default — app-agnostic across Teams / Zoom / Meet / FaceTime.
+    @AppStorage("callDetectEnabled") var callDetectEnabled: Bool = true
+    // Periodic "still recording" reminder cadence, in minutes. 0 = off.
+    // Default 30 min — a gentle backstop against forgetting a live session.
+    @AppStorage("recordingReminderMinutes") var recordingReminderMinutes: Int = 30
+
     // Which audio channels to capture: mic only, system only, or both. Defaults
     // to both (full meeting). Persisted across launches.
     @AppStorage("audioSource") var audioSource: AudioSource = .both

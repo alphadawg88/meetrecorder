@@ -21,6 +21,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var popover: NSPopover!
     private var recordingManager = RecordingManager()
     private var calendarManager = CalendarManager()
+    private let callDetector = CallDetector()
+    // Ticks every second while recording to advance the menu-bar elapsed timer.
+    private var menuTimer: Timer?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -46,14 +49,33 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Observe recording and processing states to update the status-bar icon + progress.
         Publishers.CombineLatest(recordingManager.$isRecording, recordingManager.$processingStage)
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] isRecording, stage in
-                self?.updateStatusIcon(
-                    isRecording: isRecording,
-                    processingStage: stage,
-                    progress: RecordingManager.progress(for: stage)
-                )
+            .sink { [weak self] isRecording, _ in
+                self?.handleStateChange(isRecording: isRecording)
             }
             .store(in: &cancellables)
+
+        configureCallDetector()
+    }
+
+    // MARK: - Call detection
+
+    /// Offer to record when any app starts using the mic (a call begins). The
+    /// detector is app-agnostic; we gate the prompt on the user's setting and on
+    /// Glyph not already being busy (so our own recording never self-prompts).
+    private func configureCallDetector() {
+        callDetector.isBusy = { [weak self] in
+            guard let self else { return true }
+            return self.recordingManager.isRecording || !self.recordingManager.processingStage.isEmpty
+        }
+        callDetector.onCallLikelyStarted = {
+            guard SettingsStore.shared.callDetectEnabled else { return }
+            NotificationManager.notifyWithStartAction(
+                title: "You're in a call",
+                body: "Want Glyph to record it? You can dismiss this.",
+                identifier: "call-detected"
+            )
+        }
+        callDetector.start()
     }
 
     // MARK: - MLX memory guard
@@ -129,25 +151,71 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NSApplication.shared.terminate(nil)
     }
 
+    /// Drive the menu-bar ticking timer: run a 1 s timer only while recording, and
+    /// refresh the icon immediately on every state change.
+    private func handleStateChange(isRecording: Bool) {
+        if isRecording {
+            if menuTimer == nil {
+                menuTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+                    Task { @MainActor in self?.refreshStatusIcon() }
+                }
+            }
+        } else {
+            menuTimer?.invalidate()
+            menuTimer = nil
+        }
+        refreshStatusIcon()
+    }
+
+    private func refreshStatusIcon() {
+        let stage = recordingManager.processingStage
+        updateStatusIcon(
+            isRecording: recordingManager.isRecording,
+            processingStage: stage,
+            progress: RecordingManager.progress(for: stage)
+        )
+    }
+
     private func updateStatusIcon(isRecording: Bool, processingStage: String, progress: Double) {
         guard let button = statusItem.button else { return }
         let isProcessing = !processingStage.isEmpty
+        let monoFont = NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .regular)
+
         if isRecording {
+            // Recording: waveform icon + ticking MM:SS in the DS danger red (#FF4444).
+            let red = NSColor(hex: "FF4444")
+            let elapsed = Self.elapsedString(since: recordingManager.recordingStartTime)
             button.image = NSImage(systemSymbolName: "waveform.circle.fill", accessibilityDescription: "Recording")
-            button.contentTintColor = .systemRed
-            button.title = ""
+            button.contentTintColor = red
+            button.attributedTitle = NSAttributedString(
+                string: " \(elapsed)",
+                attributes: [.font: monoFont, .foregroundColor: red]
+            )
+            button.toolTip = "Glyph — Recording (\(elapsed))"
         } else if isProcessing {
+            // Processing: distinct ellipsis icon + N% in the DS warning amber (#FFAB00).
+            let amber = NSColor(hex: "FFAB00")
             button.image = NSImage(systemSymbolName: "ellipsis.circle.fill", accessibilityDescription: "Processing")
-            button.contentTintColor = .systemOrange
-            button.title = " \(Int(progress * 100))%"
+            button.contentTintColor = amber
+            button.attributedTitle = NSAttributedString(
+                string: " \(Int(progress * 100))%",
+                attributes: [.font: monoFont, .foregroundColor: amber]
+            )
             button.toolTip = processingStage
         } else {
             button.image = NSImage(named: "MenuBarIcon")
             button.image?.isTemplate = true
             button.contentTintColor = nil
+            button.attributedTitle = NSAttributedString(string: "")
             button.title = ""
             button.toolTip = nil
         }
+    }
+
+    private static func elapsedString(since start: Date?) -> String {
+        guard let start else { return "00:00" }
+        let total = max(0, Int(Date().timeIntervalSince(start)))
+        return String(format: "%02d:%02d", total / 60, total % 60)
     }
 
     private var cancellables = Set<AnyCancellable>()

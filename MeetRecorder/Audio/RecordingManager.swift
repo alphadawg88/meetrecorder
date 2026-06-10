@@ -19,6 +19,9 @@ final class RecordingManager: ObservableObject {
     @Published var currentRecord: MeetingRecord?
     @Published var processingStage: String = ""
     @Published var records: [MeetingRecord] = []
+    /// Start time of the in-progress recording (nil when idle). Drives the live
+    /// menu-bar elapsed timer.
+    @Published var recordingStartTime: Date?
 
     private let micCapture = MicrophoneCapture()
     private let systemCapture = SystemAudioCapture()
@@ -30,6 +33,7 @@ final class RecordingManager: ObservableObject {
     private let settings = SettingsStore.shared
     private var cancellables = Set<AnyCancellable>()
     private var autoStopTimer: Timer?
+    private var reminderTimer: Timer?
     private var calendarManager: CalendarManager?
     // The audio channels captured for the in-progress recording (snapshotted at
     // start so a settings change mid-recording can't desync start vs. stop).
@@ -87,9 +91,11 @@ final class RecordingManager: ObservableObject {
         )
         currentRecord = record
         isRecording = true
+        recordingStartTime = record.startTime
         let source = settings.audioSource
         activeSource = source
         NotificationManager.notify(title: "Glyph is recording", body: "Tap the menu bar icon to stop.")
+        scheduleReminder(from: record.startTime)
 
         Task {
             do {
@@ -119,7 +125,10 @@ final class RecordingManager: ObservableObject {
         guard isRecording else { return }
         autoStopTimer?.invalidate()
         autoStopTimer = nil
+        reminderTimer?.invalidate()
+        reminderTimer = nil
         isRecording = false
+        recordingStartTime = nil
         processingStage = "Finalizing audio…"
 
         guard var record = currentRecord else { return }
@@ -162,6 +171,25 @@ final class RecordingManager: ObservableObject {
                 await processAudio(record: record, audioURL: mixedURL)
             } catch {
                 await handleError(error, context: "Failed to stop or mix audio")
+            }
+        }
+    }
+
+    /// Fire a calm "still recording" reminder every N minutes (0 = off) so a live
+    /// session is never silently forgotten. Repeats until the recording stops.
+    private func scheduleReminder(from start: Date) {
+        reminderTimer?.invalidate()
+        let minutes = settings.recordingReminderMinutes
+        guard minutes > 0 else { return }
+        let interval = TimeInterval(minutes * 60)
+        reminderTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                guard let self, self.isRecording else { return }
+                let elapsed = Int(Date().timeIntervalSince(start)) / 60
+                NotificationManager.notify(
+                    title: "Recording for \(elapsed) minutes",
+                    body: "Still capturing. Open Glyph when you're ready to stop."
+                )
             }
         }
     }
@@ -241,6 +269,9 @@ final class RecordingManager: ObservableObject {
         Log.error("\(context): \(error.localizedDescription) [\(error)]")
         await MainActor.run {
             isRecording = false
+            recordingStartTime = nil
+            reminderTimer?.invalidate()
+            reminderTimer = nil
             processingStage = ""
             if var record = currentRecord {
                 record = MeetingRecord(
