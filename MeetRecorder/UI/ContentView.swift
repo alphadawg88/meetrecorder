@@ -32,7 +32,7 @@ struct ContentView: View {
             FooterView()
         }
         .frame(width: 360)
-        .background(.ultraThinMaterial)
+        .background(DesignToken.bgBase)
         .onAppear {
             recordingManager.inject(calendarManager: calendarManager)
         }
@@ -52,15 +52,15 @@ struct HeaderView: View {
         HStack(spacing: 8) {
             Image(systemName: recordingManager.phase.isRecording ? "waveform.circle.fill" : "waveform")
                 .foregroundColor(recordingManager.phase.isRecording
-                                 ? Color(nsColor: .systemRed)
-                                 : .secondary)
+                                 ? DesignToken.danger
+                                 : DesignToken.fgSecondary)
                 .symbolEffect(.pulse, isActive: recordingManager.phase.isRecording)
                 .imageScale(.medium)
                 .accessibilityHidden(true)
 
-            Text("Glyph")
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundColor(.primary)
+            Text("MeetRecorder")
+                .font(DesignToken.h1())
+                .foregroundColor(DesignToken.fgPrimary)
 
             Spacer()
 
@@ -113,22 +113,22 @@ struct ConfigurationBanner: View {
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: "exclamationmark.triangle.fill")
-                .foregroundColor(Color(nsColor: .systemOrange))
+                .foregroundColor(DesignToken.warning)
                 .imageScale(.small)
                 .accessibilityHidden(true)
 
             Text(SettingsStore.shared.offlineMode
                  ? "Download on-device models in Settings to begin."
                  : "Add API keys in Settings to begin.")
-                .font(.system(size: 11))
-                .foregroundColor(.secondary)
+                .font(DesignToken.caption())
+                .foregroundColor(DesignToken.fgSecondary)
 
             Spacer()
         }
         .padding(8)
         .background(
             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(Color(nsColor: .systemOrange).opacity(0.08))
+                .fill(DesignToken.warning.opacity(0.08))
         )
         .padding(.horizontal, 16)
     }
@@ -144,9 +144,10 @@ struct UpcomingEventCard: View {
                 Text(event.title ?? "Meeting")
                     .font(.system(size: 13, weight: .semibold))
                     .lineLimit(1)
+                    .foregroundColor(DesignToken.fgPrimary)
                 Text("\(event.startDate, style: .time) – \(event.endDate, style: .time)")
                     .font(.system(size: 11))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(DesignToken.fgSecondary)
             }
 
             Spacer()
@@ -160,7 +161,7 @@ struct UpcomingEventCard: View {
             .buttonStyle(SecondaryButtonStyle())
         }
         .padding(10)
-        .background(Color(nsColor: .controlBackgroundColor))
+        .background(DesignToken.bgRaised)
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 }
@@ -175,7 +176,7 @@ struct RecordingView: View {
         VStack(spacing: 16) {
             HStack(spacing: 10) {
                 Image(systemName: "waveform.circle.fill")
-                    .foregroundColor(Color(nsColor: .systemRed))
+                    .foregroundColor(DesignToken.danger)
                     .symbolEffect(.pulse)
                     .imageScale(.large)
                     .accessibilityHidden(true)
@@ -184,12 +185,13 @@ struct RecordingView: View {
                     Text(record.title)
                         .font(.system(size: 13, weight: .semibold))
                         .lineLimit(1)
+                        .foregroundColor(DesignToken.fgPrimary)
                     // Live elapsed timer, monospaced to avoid jitter.
                     TimelineView(.periodic(from: record.startTime, by: 1)) { context in
                         Text(Self.elapsed(since: record.startTime, now: context.date))
                             .font(.system(size: 20, weight: .semibold, design: .rounded))
                             .monospacedDigit()
-                            .foregroundColor(.primary)
+                            .foregroundColor(DesignToken.fgPrimary)
                     }
                 }
 
@@ -212,7 +214,7 @@ struct RecordingView: View {
         .padding(.vertical, 12)
         .background(
             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(Color(nsColor: .systemRed).opacity(0.06))
+                .fill(DesignToken.danger.opacity(0.06))
                 .padding(.horizontal, 12)
         )
         .padding(.vertical, 4)
@@ -235,10 +237,11 @@ struct ProcessingView: View {
             ProgressView()
                 .controlSize(.small)
                 .scaleEffect(0.8)
+                .tint(DesignToken.accent)
 
             Text(stage)
                 .font(.system(size: 11))
-                .foregroundColor(.secondary)
+                .foregroundColor(DesignToken.fgSecondary)
                 .multilineTextAlignment(.center)
 
             StatusBadge(text: "Processing", style: .processing)
@@ -256,11 +259,12 @@ struct HistoryView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Divider()
+                .background(DesignToken.fgTertiary.opacity(0.3))
                 .padding(.horizontal, 16)
 
             Text("Recent")
-                .font(.system(size: 10, weight: .semibold))
-                .foregroundColor(.secondary)
+                .font(DesignToken.labelCaps())
+                .foregroundColor(DesignToken.fgSecondary)
                 .tracking(0.5)
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
@@ -294,9 +298,10 @@ struct HistoryRow: View {
                 Text(record.title)
                     .font(.system(size: 12, weight: .medium))
                     .lineLimit(1)
+                    .foregroundColor(DesignToken.fgPrimary)
                 Text(record.startTime.formatted(date: .abbreviated, time: .shortened))
                     .font(.system(size: 10))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(DesignToken.fgSecondary)
             }
 
             Spacer()
@@ -325,9 +330,9 @@ struct HistoryRow: View {
 
     private var iconColor: Color {
         switch record.status {
-        case .completed: return Color(nsColor: .systemGreen)
-        case .processing, .recording: return Color(nsColor: .systemOrange)
-        case .failed: return Color(nsColor: .systemRed)
+        case .completed: return DesignToken.success
+        case .processing, .recording: return DesignToken.warning
+        case .failed: return DesignToken.danger
         }
     }
 }
@@ -342,12 +347,12 @@ struct FooterView: View {
             if let shortcut = KeyboardShortcuts.getShortcut(for: .toggleRecording) {
                 Text(shortcut.description)
                     .font(.system(size: 10, weight: .medium))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(DesignToken.fgSecondary)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
                     .background(
                         RoundedRectangle(cornerRadius: 4, style: .continuous)
-                            .stroke(Color(nsColor: .quaternaryLabelColor), lineWidth: 0.5)
+                            .stroke(DesignToken.fgTertiary, lineWidth: 0.5)
                     )
             }
 
@@ -356,14 +361,14 @@ struct FooterView: View {
             if recordingManager.phase.isRecording {
                 Text("Recording")
                     .font(.system(size: 10, weight: .semibold))
-                    .foregroundColor(Color(nsColor: .systemRed))
+                    .foregroundColor(DesignToken.danger)
             }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
         .overlay(alignment: .top) {
             Rectangle()
-                .fill(Color(nsColor: .separatorColor).opacity(0.3))
+                .fill(DesignToken.fgTertiary.opacity(0.3))
                 .frame(height: 0.5)
         }
     }
