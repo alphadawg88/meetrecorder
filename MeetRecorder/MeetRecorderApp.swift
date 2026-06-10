@@ -151,6 +151,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NSApplication.shared.terminate(nil)
     }
 
+    func applicationWillTerminate(_ notification: Notification) {
+        // Tear down the CoreAudio property listeners cleanly on quit.
+        callDetector.stop()
+        menuTimer?.invalidate()
+        menuTimer = nil
+    }
+
     /// Drive the menu-bar ticking timer: run a 1 s timer only while recording, and
     /// refresh the icon immediately on every state change.
     private func handleStateChange(isRecording: Bool) {

@@ -197,7 +197,7 @@ struct SettingsView: View {
                         .labelCaps()
                         .foregroundColor(DS.Color.secondary)
                 } footer: {
-                    Text("A gentle nudge while you record — not an alarm.")
+                    Text("Reminders are a gentle nudge while you record — not an alarm.")
                         .font(DS.Font.caption)
                         .foregroundColor(DS.Color.secondary)
                 }

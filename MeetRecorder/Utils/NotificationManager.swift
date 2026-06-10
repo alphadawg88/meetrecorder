@@ -39,10 +39,10 @@ class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
     static let shared = NotificationDelegate()
 
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
-        let category = response.notification.request.content.categoryIdentifier
-        if response.actionIdentifier == "START_RECORDING"
-            || category == "MEETING_START"
-            || category == "CALL_DETECTED" {
+        // Only the explicit "Start Recording" action button toggles recording.
+        // A plain banner-body tap must NOT start a recording — the prompt copy
+        // promises the user can dismiss it safely.
+        if response.actionIdentifier == "START_RECORDING" {
             NotificationCenter.default.post(name: .toggleRecording, object: nil)
         }
         completionHandler()
