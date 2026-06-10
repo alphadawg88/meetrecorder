@@ -1,6 +1,7 @@
 import SwiftUI
 import Combine
 import KeyboardShortcuts
+import MLX
 
 @main
 struct GlyphApp: App {
@@ -23,6 +24,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
+        Self.configureMLXMemory()
         NotificationManager.register()
         KeyboardShortcuts.onKeyUp(for: .toggleRecording) {
             guard SettingsStore.shared.globalShortcutEnabled else { return }
@@ -49,6 +51,23 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 )
             }
             .store(in: &cancellables)
+    }
+
+    // MARK: - MLX memory guard
+
+    /// Cap MLX's GPU buffer cache and overall wired-memory ceiling so on-device
+    /// inference can't balloon unified memory and take the whole system down.
+    /// Without these, MLX's Metal cache grows unbounded — the dominant cause of
+    /// the app inducing system-wide memory pressure on long meetings.
+    private static func configureMLXMemory() {
+        // Trim the reusable GPU buffer cache aggressively (512 MB).
+        MLX.GPU.set(cacheLimit: 512 * 1024 * 1024)
+        // Hard ceiling at ~65% of physical RAM so MLX fails gracefully instead
+        // of evicting the OS. `relaxed: false` makes allocations past the limit
+        // throw rather than over-commit.
+        let physical = ProcessInfo.processInfo.physicalMemory
+        let ceiling = Int(Double(physical) * 0.65)
+        MLX.GPU.set(memoryLimit: ceiling, relaxed: false)
     }
 
     // MARK: - Popover

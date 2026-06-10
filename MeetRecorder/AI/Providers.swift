@@ -10,12 +10,20 @@ import Foundation
 /// Produces a raw transcript from a mixed audio file.
 protocol Transcriber {
     func transcribe(audioURL: URL) async throws -> String
+    /// Release any in-memory model. No-op for cloud providers.
+    func unload() async
 }
 
 /// Turns a transcript into structured meeting notes.
 protocol Summarizer {
     func process(transcript: String, targetLanguage: String, meetingTitle: String) async throws -> AIOutput
+    /// Release any in-memory model. No-op for cloud providers.
+    func unload() async
 }
+
+// Cloud providers hold no resident model, so unload is a no-op by default.
+extension Transcriber { func unload() async {} }
+extension Summarizer { func unload() async {} }
 
 // MARK: - Shared prompt
 //

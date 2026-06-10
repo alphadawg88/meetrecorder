@@ -45,7 +45,9 @@ final class SettingsStore: ObservableObject {
     // Selected on-device transcription model (WhisperKit).
     @AppStorage("whisperModel") var whisperModel: String = "large-v3"
     // Selected on-device summary model (full MLX HuggingFace model id).
-    @AppStorage("localLLMModelID") var localLLMModelID: String = "mlx-community/Qwen2.5-7B-Instruct-4bit"
+    // Defaults to the 3B (~2 GB resident) for a lean baseline that runs on
+    // 8/16 GB Macs; users can switch to the 7B in Settings for higher quality.
+    @AppStorage("localLLMModelID") var localLLMModelID: String = "mlx-community/Qwen2.5-3B-Instruct-4bit"
 
     private init() {
         migrate()

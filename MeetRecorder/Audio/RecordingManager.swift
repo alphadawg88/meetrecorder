@@ -190,6 +190,11 @@ final class RecordingManager: ObservableObject {
             processingStage = useCloud ? "Transcribing with Whisper…" : "Transcribing on-device…"
             let transcript = try await transcriber.transcribe(audioURL: audioURL)
 
+            // Free the transcription model before the (larger) summarizer loads,
+            // so the two on-device models are never co-resident during the
+            // memory-heaviest phase. No-op for the cloud path.
+            await transcriber.unload()
+
             processingStage = useCloud ? "Analyzing with Claude…" : "Summarizing on-device…"
             let aiOutput = try await summarizer.process(
                 transcript: transcript,

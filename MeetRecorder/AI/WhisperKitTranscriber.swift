@@ -13,6 +13,13 @@ actor WhisperKitTranscriber: Transcriber {
 
     var isLoaded: Bool { pipe != nil }
 
+    /// Release the Whisper model so it isn't held resident while the (larger)
+    /// LLM runs, and between meetings. Reloads lazily on next transcribe.
+    func unload() {
+        pipe = nil
+        loadedModelName = nil
+    }
+
     /// Download (if needed) and load the selected model. Reloads if the user
     /// changed the model in Settings. Safe to call repeatedly.
     func preload() async throws {
