@@ -1,0 +1,224 @@
+import AVFoundation
+import Combine
+
+/// The single thing the popover is doing right now. Drives the state-first UI.
+enum RecordingPhase: Equatable {
+    case idle
+    case recording(MeetingRecord)
+    case processing(String)   // localized stage label
+
+    var isRecording: Bool {
+        if case .recording = self { return true }
+        return false
+    }
+}
+
+@MainActor
+final class RecordingManager: ObservableObject {
+    @Published var isRecording = false
+    @Published var currentRecord: MeetingRecord?
+    @Published var processingStage: String = ""
+    @Published var records: [MeetingRecord] = []
+
+    private let micCapture = MicrophoneCapture()
+    private let systemCapture = SystemAudioCapture()
+    private let whisperService: Transcriber = WhisperService()
+    private let claudeService: Summarizer = ClaudeService()
+    private let localTranscriber: Transcriber = WhisperKitTranscriber.shared
+    private let localSummarizer: Summarizer = MLXSummarizer.shared
+    private let exporter = MarkdownExporter()
+    private let settings = SettingsStore.shared
+    private var cancellables = Set<AnyCancellable>()
+    private var autoStopTimer: Timer?
+    private var calendarManager: CalendarManager?
+
+    init() {
+        loadRecords()
+        NotificationCenter.default.publisher(for: .toggleRecording)
+            .sink { [weak self] _ in self?.toggleRecording() }
+            .store(in: &cancellables)
+    }
+
+    func inject(calendarManager: CalendarManager) {
+        self.calendarManager = calendarManager
+    }
+
+    /// Derived UI state. Recording wins; otherwise an active processing stage; otherwise idle.
+    var phase: RecordingPhase {
+        if isRecording, let record = currentRecord {
+            return .recording(record)
+        }
+        if !processingStage.isEmpty {
+            return .processing(processingStage)
+        }
+        return .idle
+    }
+
+    func toggleRecording() {
+        isRecording ? stopRecording() : startRecording()
+    }
+
+    func startRecording(title: String? = nil, calendarEventID: String? = nil) {
+        guard !isRecording else { return }
+        let record = MeetingRecord(
+            id: UUID(),
+            startTime: Date(),
+            endTime: nil,
+            title: title ?? "Meeting \(DateFormatter.localizedString(from: Date(), dateStyle: .short, timeStyle: .short))",
+            calendarEventID: calendarEventID,
+            audioURL: nil,
+            markdownURL: nil,
+            status: .recording
+        )
+        currentRecord = record
+        isRecording = true
+
+        Task {
+            do {
+                try await micCapture.start()
+                try await systemCapture.start()
+                scheduleAutoStop(eventID: calendarEventID)
+            } catch {
+                await handleError(error, context: "Failed to start audio capture")
+                _ = await micCapture.stop()
+                _ = await systemCapture.stop()
+            }
+        }
+    }
+
+    func stopRecording() {
+        guard isRecording else { return }
+        autoStopTimer?.invalidate()
+        autoStopTimer = nil
+        isRecording = false
+        processingStage = "Finalizing audio…"
+
+        guard var record = currentRecord else { return }
+        record = MeetingRecord(
+            id: record.id,
+            startTime: record.startTime,
+            endTime: Date(),
+            title: record.title,
+            calendarEventID: record.calendarEventID,
+            audioURL: nil,
+            markdownURL: nil,
+            status: .processing
+        )
+        currentRecord = record
+
+        Task {
+            do {
+                let micURL = await micCapture.stop()
+                let sysURL = await systemCapture.stop()
+                let mixedURL = try await AudioMixer.mix(micURL: micURL, systemURL: sysURL)
+
+                record = MeetingRecord(
+                    id: record.id,
+                    startTime: record.startTime,
+                    endTime: record.endTime,
+                    title: record.title,
+                    calendarEventID: record.calendarEventID,
+                    audioURL: mixedURL,
+                    markdownURL: nil,
+                    status: .processing
+                )
+                currentRecord = record
+
+                await processAudio(record: record, audioURL: mixedURL)
+            } catch {
+                await handleError(error, context: "Failed to stop or mix audio")
+            }
+        }
+    }
+
+    private func scheduleAutoStop(eventID: String?) {
+        guard settings.autoStop,
+              let eventID = eventID ?? currentRecord?.calendarEventID,
+              let endDate = calendarManager?.eventEndDate(for: eventID) else { return }
+
+        let interval = endDate.timeIntervalSince(Date())
+        guard interval > 0 else { return }
+
+        autoStopTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: false) { [weak self] _ in
+            guard let self = self, self.isRecording else { return }
+            self.stopRecording()
+            NotificationManager.notify(title: "Meeting Ended", body: "Auto-stopped recording. Processing transcript…")
+        }
+    }
+
+    private func processAudio(record: MeetingRecord, audioURL: URL) async {
+        do {
+            let offline = settings.offlineMode
+            let transcriber: Transcriber = offline ? localTranscriber : whisperService
+            let summarizer: Summarizer = offline ? localSummarizer : claudeService
+
+            processingStage = offline ? "Transcribing on-device…" : "Transcribing with Whisper…"
+            let transcript = try await transcriber.transcribe(audioURL: audioURL)
+
+            processingStage = offline ? "Summarizing on-device…" : "Analyzing with Claude…"
+            let aiOutput = try await summarizer.process(
+                transcript: transcript,
+                targetLanguage: settings.targetLanguage,
+                meetingTitle: record.title
+            )
+
+            processingStage = "Exporting memory file…"
+            let mdURL = try exporter.export(record: record, aiOutput: aiOutput, rawTranscript: transcript)
+
+            let completed = MeetingRecord(
+                id: record.id,
+                startTime: record.startTime,
+                endTime: record.endTime,
+                title: record.title,
+                calendarEventID: record.calendarEventID,
+                audioURL: audioURL,
+                markdownURL: mdURL,
+                status: .completed
+            )
+
+            await MainActor.run {
+                currentRecord = nil
+                processingStage = ""
+                records.insert(completed, at: 0)
+                saveRecords()
+                NotificationManager.notify(title: "Meeting Processed", body: "\(record.title) is ready in your vault.")
+            }
+        } catch {
+            await handleError(error, context: "AI processing failed")
+        }
+    }
+
+    private func handleError(_ error: Error, context: String) async {
+        await MainActor.run {
+            isRecording = false
+            processingStage = ""
+            if var record = currentRecord {
+                record = MeetingRecord(
+                    id: record.id,
+                    startTime: record.startTime,
+                    endTime: record.endTime,
+                    title: record.title,
+                    calendarEventID: record.calendarEventID,
+                    audioURL: record.audioURL,
+                    markdownURL: record.markdownURL,
+                    status: .failed
+                )
+                records.insert(record, at: 0)
+                currentRecord = nil
+            }
+            NotificationManager.notify(title: "Glyph Error", body: "\(context): \(error.localizedDescription)")
+        }
+    }
+
+    private func loadRecords() {
+        guard let data = UserDefaults.standard.data(forKey: "meetingRecords"),
+              let decoded = try? JSONDecoder().decode([MeetingRecord].self, from: data) else { return }
+        records = decoded
+    }
+
+    private func saveRecords() {
+        if let data = try? JSONEncoder().encode(records) {
+            UserDefaults.standard.set(data, forKey: "meetingRecords")
+        }
+    }
+}

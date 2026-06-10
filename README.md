@@ -159,7 +159,7 @@ meetrecorder/
     ├── python/
     │   ├── dual-record.py      # Dual-channel audio capture
     │   ├── mac-recorder.py     # Single-channel mic recorder
-       │   └── mac-transcribe.py   # Whisper + insight extraction
+    │   └── mac-transcribe.py   # Whisper + insight extraction
     └── swift/
         ├── MeetRecorderMenuBar.swift  # Menu bar app source
         └── set-default-output.swift   # CoreAudio output switcher
@@ -170,11 +170,6 @@ meetrecorder/
 ```bash
 cd app
 ./build-app.sh
-# Or using Python:
-python3 -c "
-import subprocess, sys
-subprocess.run([sys.executable, '-c', open('build-app.sh').read()], shell=False)
-"
 ```
 
 The resulting `app/dist/MeetRecorder.app` can be dragged to `/Applications/` or `~/Applications/`.

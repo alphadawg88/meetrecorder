@@ -1,5 +1,37 @@
-*.pyc
-__pycache__/
-*.app/
+# macOS
 .DS_Store
+*.dmg
+*.app
+
+# Xcode
+build/
+DerivedData/
+*.xcworkspace
+xcuserdata/
+*.xcodeproj/
+
+# XcodeGen (generated locally from project.yml)
+*.xcodeproj
+MeetRecorder/*.entitlements
+
+# API Keys / Secrets
+.env
+*.env
+Secrets.swift
+
+# Audio temp files
+*.caf
+*.m4a
+*.wav
+*.mp3
+
+# Swift Package Manager
+.build/
+Package.resolved
+
+# IDE
+.idea/
+.vscode/
+
+# Logs
 *.log
