@@ -16,6 +16,7 @@ actor WhisperKitTranscriber: Transcriber {
     /// Release the Whisper model so it isn't held resident while the (larger)
     /// LLM runs, and between meetings. Reloads lazily on next transcribe.
     func unload() {
+        if pipe != nil { Log.info("Whisper unload: \(loadedModelName ?? "?")") }
         pipe = nil
         loadedModelName = nil
     }
@@ -25,8 +26,10 @@ actor WhisperKitTranscriber: Transcriber {
     func preload() async throws {
         let name = await SettingsStore.shared.whisperModel
         if pipe != nil, loadedModelName == name { return }
+        Log.info("Whisper load START: \(name)")
         pipe = try await WhisperKit(WhisperKitConfig(model: name, download: true))
         loadedModelName = name
+        Log.info("Whisper load DONE: \(name)")
     }
 
     func transcribe(audioURL: URL) async throws -> String {

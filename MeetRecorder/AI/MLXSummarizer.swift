@@ -21,6 +21,7 @@ actor MLXSummarizer: Summarizer {
     /// meetings / on memory pressure so the model isn't pinned for the whole
     /// app lifetime.
     func unload() {
+        if container != nil { Log.info("MLX LLM unload: \(loadedModelID ?? "?")") }
         container = nil
         loadedModelID = nil
         MLX.GPU.clearCache()
@@ -30,10 +31,12 @@ actor MLXSummarizer: Summarizer {
     func preload(progress: (@Sendable (Double) -> Void)? = nil) async throws {
         let id = await Self.resolvedModelID()
         if container != nil, loadedModelID == id { return }
+        Log.info("MLX LLM load START: \(id)")
         container = try await loadModelContainer(id: id) { p in
             progress?(p.fractionCompleted)
         }
         loadedModelID = id
+        Log.info("MLX LLM load DONE: \(id)")
     }
 
     func process(transcript: String, targetLanguage: String, meetingTitle: String) async throws -> AIOutput {
@@ -48,6 +51,9 @@ actor MLXSummarizer: Summarizer {
         let capped = transcript.count > Self.maxTranscriptChars
             ? String(transcript.prefix(Self.maxTranscriptChars))
             : transcript
+        if capped.count < transcript.count {
+            Log.warn("Transcript capped \(transcript.count) → \(capped.count) chars before LLM")
+        }
 
         let session = ChatSession(
             container,

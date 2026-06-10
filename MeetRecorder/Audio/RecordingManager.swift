@@ -95,6 +95,7 @@ final class RecordingManager: ObservableObject {
             do {
                 // Start only the selected channels. Mic-only skips ScreenCaptureKit
                 // entirely (no Screen Recording permission / relaunch needed).
+                Log.info("Recording START — source=\(source.rawValue)")
                 if source.capturesMic { try await micCapture.start() }
                 if source.capturesSystem { try await systemCapture.start() }
                 scheduleAutoStop(eventID: calendarEventID)
@@ -141,7 +142,10 @@ final class RecordingManager: ObservableObject {
                 async let micStop: URL? = source.capturesMic ? micCapture.stop() : nil
                 async let sysStop: URL? = source.capturesSystem ? systemCapture.stop() : nil
                 let (micURL, sysURL) = await (micStop, sysStop)
+                Log.info("Recording STOP — mixing (mic=\(micURL != nil), system=\(sysURL != nil))")
                 let mixedURL = try await AudioMixer.mix(micURL: micURL, systemURL: sysURL)
+                let sizeMB = (try? FileManager.default.attributesOfItem(atPath: mixedURL.path)[.size] as? Int).flatMap { $0 }.map { Double($0) / 1_048_576 } ?? 0
+                Log.info("Mixed audio ready: \(mixedURL.lastPathComponent) (\(String(format: "%.1f", sizeMB)) MB)")
 
                 record = MeetingRecord(
                     id: record.id,
@@ -188,7 +192,9 @@ final class RecordingManager: ObservableObject {
             let summarizer: Summarizer = useCloud ? claudeService : localSummarizer
 
             processingStage = useCloud ? "Transcribing with Whisper…" : "Transcribing on-device…"
+            Log.info("Transcribe START (\(useCloud ? "cloud" : "on-device"))")
             let transcript = try await transcriber.transcribe(audioURL: audioURL)
+            Log.info("Transcribe DONE — \(transcript.count) chars")
 
             // Free the transcription model before the (larger) summarizer loads,
             // so the two on-device models are never co-resident during the
@@ -196,14 +202,17 @@ final class RecordingManager: ObservableObject {
             await transcriber.unload()
 
             processingStage = useCloud ? "Analyzing with Claude…" : "Summarizing on-device…"
+            Log.info("Summarize START (\(useCloud ? "cloud" : "on-device"))")
             let aiOutput = try await summarizer.process(
                 transcript: transcript,
                 targetLanguage: settings.targetLanguage,
                 meetingTitle: record.title
             )
+            Log.info("Summarize DONE")
 
             processingStage = "Exporting memory file…"
             let mdURL = try exporter.export(record: record, aiOutput: aiOutput, rawTranscript: transcript)
+            Log.info("Export DONE — \(mdURL.lastPathComponent)")
 
             let completed = MeetingRecord(
                 id: record.id,
@@ -229,6 +238,7 @@ final class RecordingManager: ObservableObject {
     }
 
     private func handleError(_ error: Error, context: String) async {
+        Log.error("\(context): \(error.localizedDescription) [\(error)]")
         await MainActor.run {
             isRecording = false
             processingStage = ""

@@ -24,6 +24,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
+        Log.rotateIfNeeded()
+        Log.installExceptionHandler()
+        Log.info("Glyph launched — log at ~/Library/Logs/Glyph/glyph.log")
         Self.configureMLXMemory()
         NotificationManager.register()
         KeyboardShortcuts.onKeyUp(for: .toggleRecording) {
