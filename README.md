@@ -27,11 +27,29 @@ A lightweight native macOS menu bar app that records system and microphone audio
 git clone https://github.com/alphadawg88/meetrecorder.git
 cd meetrecorder
 brew install xcodegen
+bash tools/setup-signing.sh   # one-time per Mac — see "Code signing" below
 xcodegen generate
-open MeetRecorder.xcodeproj
+open Glyph.xcodeproj
 ```
 
 Then press **Cmd+R** to build and run, or **Product > Archive** to create a release build.
+
+### Code signing (stops the permission re-prompt loop)
+
+The build signs with a stable self-signed identity, **"Glyph Local Signing"**, so
+the macOS Screen Recording / Microphone permission grant survives rebuilds. With
+ad-hoc signing, macOS keys the grant to the per-build hash and re-prompts on every
+rebuild (while System Settings still shows the app as "enabled").
+
+Run once per Mac:
+
+```bash
+bash tools/setup-signing.sh
+```
+
+It creates the certificate in your login keychain (idempotent — skips if present).
+The cert is machine-local and never committed; on a new Mac, just run it again,
+build, and grant the Screen Recording prompt **once**.
 
 ## Setup
 
