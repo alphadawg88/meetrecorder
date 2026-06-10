@@ -213,5 +213,7 @@ struct SettingsView: View {
             Spacer()
         }
         .frame(width: 480, height: 640)
+        .preferredColorScheme(.dark)
+        .tint(DesignToken.accent)
     }
 }

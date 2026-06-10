@@ -39,6 +39,7 @@ struct ContentView: View {
         .frame(width: 360)
         .background(DesignToken.bgBase)
         .preferredColorScheme(.dark)
+        .tint(DesignToken.accent)
         .onAppear {
             recordingManager.inject(calendarManager: calendarManager)
         }
