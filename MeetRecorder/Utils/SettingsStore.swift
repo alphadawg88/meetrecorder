@@ -19,6 +19,23 @@ enum AudioSource: String, CaseIterable, Identifiable {
     var capturesMic: Bool { self != .system }
     /// Capture system audio via ScreenCaptureKit (remote participants).
     var capturesSystem: Bool { self != .mic }
+
+    var systemImage: String {
+        switch self {
+        case .both:   return "waveform.and.mic"
+        case .mic:    return "mic"
+        case .system: return "speaker.wave.2"
+        }
+    }
+
+    /// Short label for the in-popover capture-mode chip.
+    var chipLabel: String {
+        switch self {
+        case .both:   return "Mic + System"
+        case .mic:    return "Mic only"
+        case .system: return "System only"
+        }
+    }
 }
 
 @MainActor

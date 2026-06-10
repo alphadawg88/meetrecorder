@@ -292,11 +292,36 @@ struct UpcomingEventCard: View {
     }
 }
 
+// MARK: - Capture Mode Chip
+
+private struct CaptureModeChip: View {
+    let source: AudioSource
+
+    var body: some View {
+        HStack(spacing: DS.Space.xs) {
+            Image(systemName: source.systemImage)
+                .imageScale(.small)
+                .accessibilityHidden(true)
+            Text(source.chipLabel)
+                .font(DS.Font.caption)
+        }
+        .foregroundColor(DS.Color.secondary)
+        .padding(.horizontal, DS.Space.sm)
+        .padding(.vertical, DS.Space.xs)
+        .background(
+            Capsule(style: .continuous)
+                .fill(DS.Color.surfaceSecondary)
+        )
+        .accessibilityLabel("Capturing: \(source.chipLabel)")
+    }
+}
+
 // MARK: - Recording
 
 struct RecordingView: View {
     let record: MeetingRecord
     @EnvironmentObject var recordingManager: RecordingManager
+    @AppStorage("audioSource") private var audioSource: AudioSource = .both
 
     var body: some View {
         VStack(spacing: DS.Space.lg) {
@@ -325,6 +350,12 @@ struct RecordingView: View {
 
                 StatusBadge(text: "REC", style: .recording)
                     .accessibilityLabel("Recording in progress")
+            }
+            .padding(.horizontal, DS.Space.lg)
+
+            HStack {
+                CaptureModeChip(source: audioSource)
+                Spacer()
             }
             .padding(.horizontal, DS.Space.lg)
 
@@ -357,6 +388,7 @@ struct RecordingView: View {
 
 struct ProcessingView: View {
     let stage: String
+    @AppStorage("audioSource") private var audioSource: AudioSource = .both
 
     var body: some View {
         VStack(spacing: DS.Space.md) {
@@ -368,6 +400,8 @@ struct ProcessingView: View {
                 .font(DS.Font.caption)
                 .foregroundColor(DS.Color.secondary)
                 .multilineTextAlignment(.center)
+
+            CaptureModeChip(source: audioSource)
 
             StatusBadge(text: "Processing", style: .processing)
         }
