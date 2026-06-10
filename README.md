@@ -7,6 +7,7 @@ A macOS meeting recorder that captures both microphone and system audio (e.g. Zo
 - **Dual-channel recording**: your mic + system audio via [Background Music](https://github.com/kyleneideck/BackgroundMusic) virtual loopback
 - **Local transcription**: OpenAI Whisper runs entirely on-device
 - **Structured insights**: auto-extracts decisions, action items, and risks
+- **Full GUI app**: dark-themed web app bundled as a native macOS .app
 - **Menu bar app**: one-click start/stop from the macOS menu bar
 - **CLI wrappers**: `meetrecord`, `meetstop`, `meettoggle`, `meetlast`, `meetlist`
 
@@ -15,7 +16,7 @@ A macOS meeting recorder that captures both microphone and system audio (e.g. Zo
 - macOS 10.15+
 - Python 3.9+ with packages:
   ```bash
-  pip3 install sounddevice soundfile numpy openai-whisper
+  pip3 install sounddevice soundfile numpy openai-whisper flask flask-cors
   ```
 - [Background Music](https://github.com/kyleneideck/BackgroundMusic/releases) virtual audio driver installed and running
 - Xcode Command Line Tools (for compiling Swift helpers)
@@ -37,13 +38,20 @@ cd ~/Projects/meetrecorder
 
 This compiles the Swift helpers and symlinks the CLI wrappers into `~/bin` (add `~/bin` to your PATH if you haven't already).
 
-### 3. Launch the menu bar app
+### 3. Launch the GUI app
 
 ```bash
-open ~/Applications/MeetRecorderMenuBar.app
+open app/dist/MeetRecorder.app
 ```
 
-Or use the CLI:
+Or run the backend directly and open in your browser:
+
+```bash
+cd app && python3 backend.py
+# Open http://localhost:8742 in your browser
+```
+
+### 4. Use the CLI
 
 ```bash
 meetrecord --name "client_call"
@@ -51,7 +59,7 @@ meetrecord --name "client_call"
 meetstop --transcribe
 ```
 
-### 4. Find your recordings
+### 5. Find your recordings
 
 All files go to `~/Desktop/recordings/`:
 
@@ -62,6 +70,45 @@ All files go to `~/Desktop/recordings/`:
 | `*_system.wav` | System/call audio only |
 | `*_transcript.txt` | Raw Whisper transcript |
 | `*_insights.md` | Decisions, action items, risks + full transcript |
+
+## MeetRecorder GUI App
+
+The new GUI app is a dark-themed single-page application built on a custom design system. It provides:
+
+### Record Screen
+- Large record button with animated pulse when recording
+- Live timer
+- Dual audio level meters (mic + system)
+- Real-time waveform visualization
+- "Mic Only" toggle and quick folder access
+
+### Library Screen
+- All recordings with waveform thumbnails
+- Filter tabs: All / Combined / Mic / System / Transcribed / Untranscribed
+- Search
+- Per-recording actions: open transcript, delete
+- Status badges: Recording / Transcribing / Ready / No transcript
+
+### Transcript Screen
+- Full transcript with speaker labels and timestamps
+- Live search with highlight
+- Insights sidebar: Decisions, Action Items, Risks
+- One-click transcription for untranscribed recordings
+
+### Settings Screen
+- Output directory
+- Audio device selection
+- Whisper model selector (tiny/base/small/medium/large)
+- Auto-transcribe toggle
+- Launch at login toggle
+
+### Design System
+See `design/DESIGN_SYSTEM.md` for the complete token specification:
+- Color tokens (background scale, foreground scale, semantic colors, channel colors)
+- Typography tokens (SF Pro Display, SF Pro Text, SF Mono)
+- Spacing, elevation, border, radius, animation tokens
+- Component specs (record button, audio meters, waveform, cards, badges, toggles, transcript lines, insight tags)
+- Screen layouts and responsive breakpoints
 
 ## CLI Reference
 
@@ -92,6 +139,16 @@ Click to open the menu:
 meetrecorder/
 ├── README.md
 ├── install.sh
+├── design/
+│   ├── DESIGN_SYSTEM.md              # Master design system + tokens
+│   └── MeetRecorder-Interface-Design.html  # Interactive design artifact v1
+├── app/
+│   ├── backend.py                    # Flask REST API (bridges frontend to scripts)
+│   ├── static/
+│   │   └── index.html                # Functional SPA frontend
+│   ├── build-app.sh                  # macOS .app bundle builder
+│   └── dist/
+│       └── MeetRecorder.app/         # Packaged macOS application
 ├── bin/
 │   ├── meetrecord       # Python wrapper: start recording
 │   ├── meetstop         # Python wrapper: stop + restore audio
@@ -102,11 +159,25 @@ meetrecorder/
     ├── python/
     │   ├── dual-record.py      # Dual-channel audio capture
     │   ├── mac-recorder.py     # Single-channel mic recorder
-    │   └── mac-transcribe.py   # Whisper + insight extraction
+       │   └── mac-transcribe.py   # Whisper + insight extraction
     └── swift/
         ├── MeetRecorderMenuBar.swift  # Menu bar app source
         └── set-default-output.swift   # CoreAudio output switcher
 ```
+
+## Building the App Bundle
+
+```bash
+cd app
+./build-app.sh
+# Or using Python:
+python3 -c "
+import subprocess, sys
+subprocess.run([sys.executable, '-c', open('build-app.sh').read()], shell=False)
+"
+```
+
+The resulting `app/dist/MeetRecorder.app` can be dragged to `/Applications/` or `~/Applications/`.
 
 ## Troubleshooting
 

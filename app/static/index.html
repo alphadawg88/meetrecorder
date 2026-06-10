@@ -1,0 +1,1170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MeetRecorder</title>
+<style>
+/* ═══════════════════════════════════════════════════════════════════════
+   MeetRecorder Design System CSS v2.0
+   Tokens derived from DESIGN_SYSTEM.md
+   ═══════════════════════════════════════════════════════════════════════ */
+
+:root {
+  --bg-base: #0A0A0A;
+  --bg-surface: #111111;
+  --bg-raised: #1A1A1A;
+  --bg-hover: #222222;
+  --bg-active: #2A2A2A;
+  --bg-overlay: rgba(0,0,0,0.72);
+  --fg-primary: #E8E8E8;
+  --fg-secondary: #888888;
+  --fg-tertiary: #555555;
+  --fg-inverse: #0A0A0A;
+  --accent: #A100FF;
+  --accent-hover: #B52AFF;
+  --accent-active: #8A00DB;
+  --accent-glow: rgba(161,0,255,0.35);
+  --success: #00E676;
+  --success-dim: rgba(0,230,118,0.15);
+  --warning: #FFAB00;
+  --warning-dim: rgba(255,171,0,0.15);
+  --danger: #FF4444;
+  --danger-dim: rgba(255,68,68,0.15);
+  --info: #05F2DB;
+  --info-dim: rgba(5,242,219,0.15);
+  --channel-mic: #FF50A0;
+  --channel-system: #05F2DB;
+  --channel-combined: #A100FF;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+  --radius-full: 999px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.5);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.6);
+  --shadow-glow-accent: 0 0 20px var(--accent-glow);
+  --shadow-glow-danger: 0 0 20px rgba(255,68,68,0.35);
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --duration-slow: 400ms;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', sans-serif;
+  background: var(--bg-base);
+  color: var(--fg-primary);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+/* ═════ Layout ═════ */
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+#main {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: var(--space-4);
+  scroll-behavior: smooth;
+}
+#main::-webkit-scrollbar { width: 6px; }
+#main::-webkit-scrollbar-track { background: transparent; }
+#main::-webkit-scrollbar-thumb { background: #333; border-radius: var(--radius-full); }
+
+/* ═════ Typography ═════ */
+.display { font-size: 32px; font-weight: 700; line-height: 1.1; letter-spacing: -0.02em; }
+h1, .h1 { font-size: 24px; font-weight: 600; line-height: 1.2; letter-spacing: -0.01em; }
+h2, .h2 { font-size: 18px; font-weight: 600; line-height: 1.3; }
+h3, .h3 { font-size: 14px; font-weight: 600; line-height: 1.4; letter-spacing: 0.01em; }
+.body { font-size: 13px; font-weight: 400; line-height: 1.5; color: var(--fg-secondary); }
+.caption { font-size: 11px; font-weight: 500; line-height: 1.4; letter-spacing: 0.02em; color: var(--fg-tertiary); text-transform: uppercase; }
+.mono { font-family: 'SF Mono', 'Menlo', 'Monaco', monospace; font-size: 12px; font-weight: 400; line-height: 1.4; }
+
+/* ═════ Buttons ═════ */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  border: none; border-radius: var(--radius-md);
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: all var(--duration-fast);
+  background: var(--bg-raised); color: var(--fg-primary);
+  box-shadow: var(--shadow-sm);
+}
+.btn:hover { background: var(--bg-hover); }
+.btn:active { background: var(--bg-active); transform: scale(0.98); }
+.btn-primary { background: var(--accent); color: var(--fg-inverse); }
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-danger { background: var(--danger); color: #fff; }
+.btn-danger:hover { background: #ff6666; }
+.btn-ghost { background: transparent; box-shadow: none; color: var(--fg-secondary); }
+.btn-ghost:hover { background: var(--bg-hover); color: var(--fg-primary); }
+.btn-sm { padding: var(--space-1) var(--space-2); font-size: 11px; }
+.btn-icon { width: 36px; height: 36px; padding: 0; border-radius: var(--radius-md); }
+
+/* ═════ Record Button ═════ */
+.record-btn-wrap {
+  display: flex; flex-direction: column; align-items: center; gap: var(--space-3);
+}
+.record-btn {
+  width: 80px; height: 80px; border-radius: var(--radius-full);
+  border: 1px solid #222;
+  background: var(--bg-raised);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: all var(--duration-normal) cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: var(--shadow-md);
+  position: relative;
+}
+.record-btn:hover { transform: scale(1.05); }
+.record-btn .inner {
+  width: 28px; height: 28px; border-radius: var(--radius-full);
+  background: var(--danger);
+  transition: all var(--duration-normal);
+}
+.record-btn.recording {
+  background: var(--danger);
+  border-color: var(--danger);
+  animation: pulse-record 2s ease-in-out infinite;
+}
+.record-btn.recording .inner {
+  width: 20px; height: 20px; border-radius: var(--radius-sm);
+  background: #fff;
+}
+@keyframes pulse-record {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255,68,68,0.4); }
+  50% { box-shadow: 0 0 0 16px rgba(255,68,68,0); }
+}
+
+/* ═════ Timer ═════ */
+.timer { font-family: 'SF Mono', monospace; font-size: 48px; font-weight: 400; color: var(--fg-primary); letter-spacing: 0.05em; }
+.timer.recording { color: var(--danger); }
+
+/* ═════ Audio Meters ═════ */
+.meters {
+  display: flex; gap: var(--space-4); justify-content: center; align-items: flex-end;
+  height: 120px;
+}
+.meter-col { display: flex; flex-direction: column; align-items: center; gap: var(--space-1); }
+.meter-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--fg-tertiary); }
+.meter {
+  width: 10px; height: 100px;
+  background: var(--bg-base);
+  border-radius: var(--radius-full);
+  display: flex; flex-direction: column-reverse; gap: 2px;
+  padding: 2px; overflow: hidden;
+}
+.meter-seg {
+  flex: 1; border-radius: 1px; min-height: 2px;
+  background: #222;
+  transition: background var(--duration-fast);
+}
+.meter-seg.active { background: var(--success); }
+.meter-seg.active.warn { background: var(--warning); }
+.meter-seg.active.peak { background: var(--danger); }
+.meter.mic .meter-seg.active { background: var(--channel-mic); }
+.meter.system .meter-seg.active { background: var(--channel-system); }
+
+/* ═════ Waveform Canvas ═════ */
+.waveform-wrap {
+  width: 100%; height: 80px;
+  background: var(--bg-surface);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  position: relative;
+  border: 1px solid #1a1a1a;
+}
+.waveform-wrap canvas { display: block; width: 100%; height: 100%; }
+
+/* ═════ Cards ═════ */
+.card {
+  background: var(--bg-surface);
+  border: 1px solid #1a1a1a;
+  border-radius: var(--radius-lg);
+  padding: var(--space-3) var(--space-4);
+  box-shadow: var(--shadow-sm);
+  transition: all var(--duration-fast);
+}
+.card:hover { border-color: #333; box-shadow: var(--shadow-md); }
+
+/* ═════ Badges ═════ */
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px; border-radius: var(--radius-full);
+  font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
+}
+.badge-recording { background: var(--danger-dim); color: var(--danger); }
+.badge-transcribing { background: var(--warning-dim); color: var(--warning); }
+.badge-ready { background: var(--success-dim); color: var(--success); }
+.badge-default { background: var(--bg-active); color: var(--fg-tertiary); }
+.badge-combined { background: var(--accent-glow); color: var(--accent); }
+.badge-mic { background: rgba(255,80,160,0.15); color: var(--channel-mic); }
+.badge-system { background: rgba(5,242,219,0.15); color: var(--channel-system); }
+
+/* ═════ Inputs ═════ */
+input, select, textarea {
+  background: var(--bg-raised);
+  border: 1px solid #222;
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  color: var(--fg-primary);
+  font-size: 13px;
+  outline: none;
+  transition: border-color var(--duration-fast);
+  width: 100%;
+}
+input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+input::placeholder { color: var(--fg-tertiary); }
+label {
+  display: block; font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--fg-secondary); margin-bottom: var(--space-1);
+}
+
+/* ═════ Toggle ═════ */
+.toggle {
+  appearance: none;
+  width: 40px; height: 20px;
+  background: var(--bg-active);
+  border-radius: var(--radius-full);
+  position: relative;
+  cursor: pointer;
+  transition: background var(--duration-fast);
+}
+.toggle::after {
+  content: ''; position: absolute;
+  width: 16px; height: 16px;
+  background: var(--fg-primary);
+  border-radius: 50%;
+  top: 2px; left: 2px;
+  transition: transform var(--duration-fast);
+}
+.toggle:checked { background: var(--accent); }
+.toggle:checked::after { transform: translateX(20px); }
+
+/* ═════ Bottom Nav ═════ */
+.bottom-nav {
+  display: flex; justify-content: space-around; align-items: center;
+  height: 56px;
+  background: var(--bg-base);
+  border-top: 1px solid #1a1a1a;
+  z-index: 100;
+}
+.nav-item {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: var(--space-1) var(--space-3);
+  color: var(--fg-tertiary);
+  cursor: pointer;
+  transition: color var(--duration-fast);
+  border: none; background: none;
+  font-size: 11px; font-weight: 500; letter-spacing: 0.05em;
+}
+.nav-item:hover { color: var(--fg-secondary); }
+.nav-item.active { color: var(--accent); }
+.nav-item svg { width: 20px; height: 20px; }
+
+/* ═════ Transcript Line ═════ */
+.transcript-line {
+  display: flex; gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  transition: background var(--duration-fast);
+}
+.transcript-line:hover { background: var(--bg-hover); }
+.transcript-speaker {
+  width: 70px; flex-shrink: 0;
+  font-size: 11px; font-weight: 600; color: var(--accent);
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+.transcript-time {
+  width: 50px; flex-shrink: 0;
+  font-family: 'SF Mono', monospace; font-size: 11px; color: var(--fg-tertiary);
+}
+.transcript-text { flex: 1; font-size: 13px; line-height: 1.5; color: var(--fg-secondary); }
+.transcript-text .highlight { background: var(--warning-dim); border-radius: 2px; padding: 0 2px; }
+
+/* ═════ Insight Item ═════ */
+.insight-item {
+  display: flex; align-items: flex-start; gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-1);
+}
+.insight-decision { background: var(--accent-glow); }
+.insight-action { background: var(--success-dim); }
+.insight-risk { background: var(--danger-dim); }
+.insight-dot { width: 6px; height: 6px; border-radius: 50%; margin-top: 6px; flex-shrink: 0; }
+.insight-decision .insight-dot { background: var(--accent); }
+.insight-action .insight-dot { background: var(--success); }
+.insight-risk .insight-dot { background: var(--danger); }
+.insight-text { font-size: 13px; line-height: 1.4; color: var(--fg-secondary); }
+
+/* ═════ Section Header ═════ */
+.section-header {
+  display: flex; align-items: center; gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+.section-header h2 { flex: 1; }
+.section-header .line {
+  flex: 1; height: 1px; background: #222;
+}
+
+/* ═════ Recording Row ═════ */
+.rec-row {
+  display: flex; align-items: center; gap: var(--space-3);
+  padding: var(--space-3);
+  background: var(--bg-surface);
+  border: 1px solid #1a1a1a;
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-2);
+  transition: all var(--duration-fast);
+  cursor: pointer;
+}
+.rec-row:hover { background: var(--bg-hover); border-color: #333; }
+.rec-wave { width: 60px; height: 36px; border-radius: var(--radius-sm); background: var(--bg-base); flex-shrink: 0; overflow: hidden; }
+.rec-info { flex: 1; min-width: 0; }
+.rec-title { font-size: 14px; font-weight: 600; color: var(--fg-primary); margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rec-meta { display: flex; gap: var(--space-2); align-items: center; }
+.rec-actions { display: flex; gap: var(--space-1); flex-shrink: 0; }
+
+/* ═════ Filter Tabs ═════ */
+.filter-tabs {
+  display: flex; gap: var(--space-1);
+  margin-bottom: var(--space-3);
+  overflow-x: auto;
+}
+.filter-tab {
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
+  background: transparent; color: var(--fg-tertiary); border: none; cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--duration-fast);
+}
+.filter-tab:hover { color: var(--fg-secondary); background: var(--bg-hover); }
+.filter-tab.active { background: var(--accent); color: #fff; }
+
+/* ═════ Search Bar ═════ */
+.search-bar {
+  display: flex; align-items: center; gap: var(--space-2);
+  background: var(--bg-raised);
+  border: 1px solid #222;
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  margin-bottom: var(--space-3);
+}
+.search-bar input { background: transparent; border: none; padding: 0; flex: 1; }
+.search-bar input:focus { border: none; box-shadow: none; }
+
+/* ═════ Empty State ═════ */
+.empty-state {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: var(--space-7) var(--space-4);
+  text-align: center;
+  color: var(--fg-tertiary);
+}
+.empty-state svg { margin-bottom: var(--space-3); opacity: 0.5; }
+.empty-state h3 { color: var(--fg-secondary); margin-bottom: var(--space-1); }
+
+/* ═════ Modal ═════ */
+.modal-backdrop {
+  position: fixed; inset: 0;
+  background: var(--bg-overlay);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000;
+  opacity: 0; pointer-events: none;
+  transition: opacity var(--duration-slow);
+}
+.modal-backdrop.open { opacity: 1; pointer-events: all; }
+.modal {
+  background: var(--bg-surface);
+  border: 1px solid #222;
+  border-radius: var(--radius-xl);
+  padding: var(--space-5);
+  max-width: 520px; width: 90%;
+  box-shadow: var(--shadow-lg);
+  transform: translateY(20px);
+  transition: transform var(--duration-slow);
+}
+.modal-backdrop.open .modal { transform: translateY(0); }
+
+/* ═════ Toast ═════ */
+#toast-container {
+  position: fixed; top: var(--space-4); right: var(--space-4);
+  z-index: 1100;
+  display: flex; flex-direction: column; gap: var(--space-2);
+  pointer-events: none;
+}
+.toast {
+  background: var(--bg-surface);
+  border: 1px solid #222;
+  border-radius: var(--radius-lg);
+  padding: var(--space-3) var(--space-4);
+  box-shadow: var(--shadow-lg);
+  font-size: 13px;
+  color: var(--fg-primary);
+  display: flex; align-items: center; gap: var(--space-2);
+  animation: toast-in var(--duration-normal) ease-out;
+  pointer-events: all;
+}
+.toast.success { border-left: 3px solid var(--success); }
+.toast.error { border-left: 3px solid var(--danger); }
+.toast.info { border-left: 3px solid var(--info); }
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* ═════ Screen Containers ═════ */
+.screen { display: none; animation: fade-in var(--duration-slow); }
+.screen.active { display: block; }
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ═════ Record Screen Specific ═════ */
+.record-screen {
+  max-width: 480px; margin: 0 auto;
+  display: flex; flex-direction: column; align-items: center;
+  gap: var(--space-4);
+  padding-top: var(--space-6);
+}
+.record-header {
+  display: flex; align-items: center; gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+.record-header .logo {
+  width: 28px; height: 28px;
+  background: var(--accent);
+  border-radius: var(--radius-md);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 700; color: #fff;
+}
+
+/* ═════ Transcript Screen Specific ═════ */
+.transcript-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+  max-width: 900px; margin: 0 auto;
+}
+@media (min-width: 900px) {
+  .transcript-layout { grid-template-columns: 1.2fr 0.8fr; }
+}
+
+/* ═════ Settings Screen Specific ═════ */
+.settings-screen { max-width: 560px; margin: 0 auto; }
+.settings-section { margin-bottom: var(--space-5); }
+.settings-row { margin-bottom: var(--space-3); }
+.settings-row-inline {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: var(--space-2) 0;
+}
+.settings-row-inline label { margin: 0; }
+
+/* ═════ Scrollbar ═════ */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #333; border-radius: var(--radius-full); }
+::-webkit-scrollbar-thumb:hover { background: #444; }
+
+/* ═════ Utility ═════ */
+.flex { display: flex; }
+.flex-col { display: flex; flex-direction: column; }
+.items-center { align-items: center; }
+.justify-center { justify-content: center; }
+.gap-1 { gap: var(--space-1); }
+.gap-2 { gap: var(--space-2); }
+.gap-3 { gap: var(--space-3); }
+.mt-2 { margin-top: var(--space-2); }
+.mt-3 { margin-top: var(--space-3); }
+.mb-2 { margin-bottom: var(--space-2); }
+.mb-3 { margin-bottom: var(--space-3); }
+.text-center { text-align: center; }
+.w-full { width: 100%; }
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="main">
+    <!-- ═════ RECORD SCREEN ═════ -->
+    <div id="screen-record" class="screen active">
+      <div class="record-screen">
+        <div class="record-header">
+          <div class="logo">M</div>
+          <h1>MeetRecorder</h1>
+        </div>
+        <div id="record-timer" class="timer">00:00:00</div>
+        <div class="record-btn-wrap">
+          <button id="record-btn" class="record-btn" onclick="toggleRecord()" aria-label="Toggle recording">
+            <div class="inner"></div>
+          </button>
+          <span id="record-status" class="caption">Tap to start recording</span>
+        </div>
+        <div class="meters">
+          <div class="meter-col">
+            <div class="meter-label">Mic</div>
+            <div class="meter mic" id="meter-mic"></div>
+          </div>
+          <div class="meter-col">
+            <div class="meter-label">System</div>
+            <div class="meter system" id="meter-system"></div>
+          </div>
+        </div>
+        <div class="waveform-wrap">
+          <canvas id="waveform-canvas"></canvas>
+        </div>
+        <div style="display:flex;gap:var(--space-2);margin-top:var(--space-2);">
+          <label class="settings-row-inline" style="gap:var(--space-2);">
+            <span class="caption">Mic Only</span>
+            <input type="checkbox" id="mic-only-toggle" class="toggle">
+          </label>
+          <button class="btn btn-ghost btn-sm" onclick="openRecordingsFolder()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+            Open Folder
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═════ LIBRARY SCREEN ═════ -->
+    <div id="screen-library" class="screen">
+      <div style="max-width:720px;margin:0 auto;">
+        <div style="display:flex;align-items:center;gap:var(--space-2);margin-bottom:var(--space-3);">
+          <h1>Recordings</h1>
+          <span id="rec-count" class="badge badge-default">0</span>
+        </div>
+        <div class="filter-tabs">
+          <button class="filter-tab active" data-filter="all" onclick="setFilter('all')">All</button>
+          <button class="filter-tab" data-filter="combined" onclick="setFilter('combined')">Combined</button>
+          <button class="filter-tab" data-filter="mic" onclick="setFilter('mic')">Mic</button>
+          <button class="filter-tab" data-filter="system" onclick="setFilter('system')">System</button>
+          <button class="filter-tab" data-filter="transcribed" onclick="setFilter('transcribed')">Transcribed</button>
+          <button class="filter-tab" data-filter="untranscribed" onclick="setFilter('untranscribed')">Untranscribed</button>
+        </div>
+        <div class="search-bar">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--fg-tertiary)" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input type="text" id="search-input" placeholder="Search recordings..." oninput="renderLibrary()">
+        </div>
+        <div id="recordings-list"></div>
+        <div id="library-empty" class="empty-state hidden">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+          <h3>No recordings yet</h3>
+          <p class="body">Start your first recording from the Record tab.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═════ TRANSCRIPT SCREEN ═════ -->
+    <div id="screen-transcript" class="screen">
+      <div class="transcript-layout">
+        <div>
+          <div style="display:flex;align-items:center;gap:var(--space-2);margin-bottom:var(--space-3);">
+            <button class="btn btn-ghost btn-icon" onclick="showScreen('library')">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+            </button>
+            <h2 id="transcript-title">Recording</h2>
+          </div>
+          <div class="search-bar">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--fg-tertiary)" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <input type="text" id="transcript-search" placeholder="Search transcript..." oninput="highlightTranscript()">
+          </div>
+          <div id="transcript-content"></div>
+          <div id="transcript-empty" class="empty-state hidden">
+            <h3>No transcript yet</h3>
+            <p class="body">Transcribe this recording to see the transcript here.</p>
+            <button class="btn btn-primary mt-3" id="transcribe-btn" onclick="transcribeCurrent()">Transcribe Now</button>
+          </div>
+        </div>
+        <div>
+          <h2 style="margin-bottom:var(--space-3);">Insights</h2>
+          <div id="insights-content"></div>
+          <div id="insights-empty" class="empty-state hidden">
+            <p class="body">No insights extracted yet.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═════ SETTINGS SCREEN ═════ -->
+    <div id="screen-settings" class="screen">
+      <div class="settings-screen">
+        <h1 style="margin-bottom:var(--space-4);">Settings</h1>
+
+        <div class="settings-section">
+          <div class="section-header"><h2>Output</h2><div class="line"></div></div>
+          <div class="settings-row">
+            <label>Output Directory</label>
+            <input type="text" id="setting-outputDir" value="~/Desktop/recordings" onchange="saveSetting('outputDir', this.value)">
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <div class="section-header"><h2>Audio</h2><div class="line"></div></div>
+          <div class="settings-row">
+            <label>Microphone Device</label>
+            <select id="setting-micDevice" onchange="saveSetting('micDevice', this.value)"><option value="">Default</option></select>
+          </div>
+          <div class="settings-row">
+            <label>System Audio Device</label>
+            <input type="text" id="setting-systemDevice" value="Background Music" onchange="saveSetting('systemDevice', this.value)">
+          </div>
+          <div class="settings-row">
+            <label>Sample Rate</label>
+            <select id="setting-sampleRate" onchange="saveSetting('sampleRate', parseInt(this.value))">
+              <option value="44100">44.1 kHz</option>
+              <option value="48000" selected>48 kHz</option>
+              <option value="96000">96 kHz</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <div class="section-header"><h2>Transcription</h2><div class="line"></div></div>
+          <div class="settings-row">
+            <label>Whisper Model</label>
+            <select id="setting-whisperModel" onchange="saveSetting('whisperModel', this.value)">
+              <option value="tiny">tiny (fastest)</option>
+              <option value="base" selected>base (balanced)</option>
+              <option value="small">small (better)</option>
+              <option value="medium">medium (best)</option>
+              <option value="large">large (slowest)</option>
+            </select>
+          </div>
+          <div class="settings-row-inline">
+            <label>Auto-transcribe after recording</label>
+            <input type="checkbox" id="setting-autoTranscribe" class="toggle" onchange="saveSetting('autoTranscribe', this.checked)">
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <div class="section-header"><h2>System</h2><div class="line"></div></div>
+          <div class="settings-row-inline">
+            <label>Launch at login</label>
+            <input type="checkbox" id="setting-launchAtLogin" class="toggle" onchange="saveSetting('launchAtLogin', this.checked)">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═════ BOTTOM NAV ═════ -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" data-screen="record" onclick="showScreen('record')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/></svg>
+      Record
+    </button>
+    <button class="nav-item" data-screen="library" onclick="showScreen('library')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      Library
+    </button>
+    <button class="nav-item" data-screen="settings" onclick="showScreen('settings')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.67 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.67a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
+      Settings
+    </button>
+  </nav>
+</div>
+
+<!-- ═════ TOAST CONTAINER ═════ -->
+<div id="toast-container"></div>
+
+<!-- ═════ CONFIRM MODAL ═════ -->
+<div class="modal-backdrop" id="confirm-modal">
+  <div class="modal">
+    <h2 id="confirm-title" style="margin-bottom:var(--space-3);">Confirm</h2>
+    <p id="confirm-body" class="body" style="margin-bottom:var(--space-4);"></p>
+    <div style="display:flex;gap:var(--space-2);justify-content:flex-end;">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-danger" id="confirm-action" onclick="">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════════
+   MeetRecorder Frontend App v2.0
+   ═══════════════════════════════════════════════════════════════════════ */
+
+const API = "/api";
+let state = {
+  recording: false,
+  recordingName: null,
+  startTime: null,
+  recordings: [],
+  filter: "all",
+  currentRecording: null,
+  settings: {},
+  meterInterval: null,
+  waveformInterval: null,
+  statusInterval: null,
+};
+
+// ═════ Initialization ═════
+document.addEventListener("DOMContentLoaded", () => {
+  initMeters();
+  initWaveform();
+  pollStatus();
+  loadRecordings();
+  loadSettings();
+  state.statusInterval = setInterval(pollStatus, 1000);
+});
+
+// ═════ API Helpers ═════
+async function get(path) {
+  const r = await fetch(API + path);
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+async function post(path, body = {}) {
+  const r = await fetch(API + path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+// ═════ Status Polling ═════
+async function pollStatus() {
+  try {
+    const s = await get("/status");
+    const wasRecording = state.recording;
+    state.recording = s.recording;
+    state.recordingName = s.recordingName;
+    state.settings = s.settings || {};
+    applySettingsUI();
+    updateRecordUI();
+    if (state.recording && !wasRecording) {
+      state.startTime = Date.now();
+      startMeters();
+      startWaveform();
+      toast("Recording started", "info");
+    } else if (!state.recording && wasRecording) {
+      stopMeters();
+      stopWaveform();
+      loadRecordings();
+      toast("Recording saved", "success");
+    }
+  } catch (e) {
+    // Backend may not be running — silently retry
+  }
+}
+
+// ═════ Recording UI ═════
+function updateRecordUI() {
+  const btn = document.getElementById("record-btn");
+  const timer = document.getElementById("record-timer");
+  const status = document.getElementById("record-status");
+  if (state.recording) {
+    btn.classList.add("recording");
+    timer.classList.add("recording");
+    status.textContent = "Recording... tap to stop";
+  } else {
+    btn.classList.remove("recording");
+    timer.classList.remove("recording");
+    timer.textContent = "00:00:00";
+    status.textContent = "Tap to start recording";
+  }
+}
+
+function updateTimer() {
+  if (!state.recording || !state.startTime) return;
+  const elapsed = Math.floor((Date.now() - state.startTime) / 1000);
+  const h = String(Math.floor(elapsed / 3600)).padStart(2, "0");
+  const m = String(Math.floor((elapsed % 3600) / 60)).padStart(2, "0");
+  const s = String(elapsed % 60).padStart(2, "0");
+  document.getElementById("record-timer").textContent = `${h}:${m}:${s}`;
+}
+setInterval(updateTimer, 1000);
+
+async function toggleRecord() {
+  if (state.recording) {
+    const auto = document.getElementById("setting-autoTranscribe")?.checked || state.settings.autoTranscribe;
+    try {
+      await post("/stop", { transcribe: auto, model: state.settings.whisperModel });
+      toast("Stopping recording...", "info");
+    } catch (e) {
+      toast("Failed to stop: " + e.message, "error");
+    }
+  } else {
+    const name = prompt("Meeting name (optional):");
+    if (name === null) return;
+    const micOnly = document.getElementById("mic-only-toggle")?.checked;
+    try {
+      await post("/start", { name: name || undefined, device: state.settings.micDevice });
+      toast("Recording started", "success");
+    } catch (e) {
+      toast("Failed to start: " + e.message, "error");
+    }
+  }
+}
+
+// ═════ Audio Meters (Simulated) ═════
+function initMeters() {
+  ["meter-mic", "meter-system"].forEach(id => {
+    const el = document.getElementById(id);
+    for (let i = 0; i < 24; i++) {
+      const seg = document.createElement("div");
+      seg.className = "meter-seg";
+      el.appendChild(seg);
+    }
+  });
+}
+function startMeters() {
+  if (state.meterInterval) clearInterval(state.meterInterval);
+  state.meterInterval = setInterval(() => {
+    ["meter-mic", "meter-system"].forEach(id => {
+      const el = document.getElementById(id);
+      const segs = el.querySelectorAll(".meter-seg");
+      const level = Math.floor(Math.random() * segs.length);
+      segs.forEach((s, i) => {
+        s.classList.toggle("active", i <= level);
+        s.classList.toggle("warn", i <= level && i > segs.length * 0.6);
+        s.classList.toggle("peak", i <= level && i > segs.length * 0.85);
+      });
+    });
+  }, 100);
+}
+function stopMeters() {
+  if (state.meterInterval) clearInterval(state.meterInterval);
+  ["meter-mic", "meter-system"].forEach(id => {
+    const segs = document.getElementById(id).querySelectorAll(".meter-seg");
+    segs.forEach(s => s.classList.remove("active", "warn", "peak"));
+  });
+}
+
+// ═════ Waveform Canvas ═════
+let waveformCtx, waveformCanvas;
+let waveformData = [];
+function initWaveform() {
+  waveformCanvas = document.getElementById("waveform-canvas");
+  const dpr = window.devicePixelRatio || 1;
+  const rect = waveformCanvas.parentElement.getBoundingClientRect();
+  waveformCanvas.width = rect.width * dpr;
+  waveformCanvas.height = rect.height * dpr;
+  waveformCtx = waveformCanvas.getContext("2d");
+  waveformCtx.scale(dpr, dpr);
+  drawWaveform();
+}
+function startWaveform() {
+  if (state.waveformInterval) clearInterval(state.waveformInterval);
+  state.waveformInterval = setInterval(() => {
+    waveformData.push((Math.random() - 0.5) * 2);
+    if (waveformData.length > 200) waveformData.shift();
+    drawWaveform();
+  }, 50);
+}
+function stopWaveform() {
+  if (state.waveformInterval) clearInterval(state.waveformInterval);
+}
+function drawWaveform() {
+  const w = waveformCanvas.width / (window.devicePixelRatio || 1);
+  const h = waveformCanvas.height / (window.devicePixelRatio || 1);
+  waveformCtx.clearRect(0, 0, w, h);
+  waveformCtx.strokeStyle = state.recording ? "rgba(161,0,255,0.6)" : "rgba(136,136,136,0.3)";
+  waveformCtx.lineWidth = 1.5;
+  waveformCtx.beginPath();
+  const step = w / (waveformData.length || 1);
+  for (let i = 0; i < waveformData.length; i++) {
+    const x = i * step;
+    const y = h / 2 + waveformData[i] * (h * 0.4);
+    if (i === 0) waveformCtx.moveTo(x, y);
+    else waveformCtx.lineTo(x, y);
+  }
+  waveformCtx.stroke();
+}
+window.addEventListener("resize", initWaveform);
+
+// ═════ Navigation ═════
+function showScreen(name) {
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  document.getElementById("screen-" + name).classList.add("active");
+  document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
+  const nav = document.querySelector(`.nav-item[data-screen="${name}"]`);
+  if (nav) nav.classList.add("active");
+  if (name === "library") loadRecordings();
+}
+
+// ═════ Library ═════
+async function loadRecordings() {
+  try {
+    state.recordings = await get("/recordings");
+    renderLibrary();
+  } catch (e) {
+    toast("Failed to load recordings", "error");
+  }
+}
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + " B";
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+  return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+}
+function formatDate(ts) {
+  const d = new Date(ts * 1000);
+  return d.toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+function formatDuration(s) {
+  const m = Math.floor(s / 60);
+  const sec = Math.floor(s % 60);
+  return `${m}:${String(sec).padStart(2, "0")}`;
+}
+function renderLibrary() {
+  const container = document.getElementById("recordings-list");
+  const empty = document.getElementById("library-empty");
+  const countBadge = document.getElementById("rec-count");
+  const search = (document.getElementById("search-input")?.value || "").toLowerCase();
+  let filtered = state.recordings;
+  if (state.filter !== "all") {
+    if (state.filter === "transcribed") filtered = filtered.filter(r => r.hasTranscript);
+    else if (state.filter === "untranscribed") filtered = filtered.filter(r => !r.hasTranscript);
+    else filtered = filtered.filter(r => r.tracks.some(t => t.type === state.filter));
+  }
+  if (search) {
+    filtered = filtered.filter(r => r.baseName.toLowerCase().includes(search));
+  }
+  countBadge.textContent = filtered.length;
+  if (filtered.length === 0) {
+    container.innerHTML = "";
+    empty.classList.remove("hidden");
+    return;
+  }
+  empty.classList.add("hidden");
+  container.innerHTML = filtered.map(r => {
+    const mainTrack = r.tracks.find(t => t.type === "combined") || r.tracks[0];
+    const badges = r.tracks.map(t => {
+      const map = { combined: "combined", mic: "mic", system: "system", single: "combined" };
+      return `<span class="badge badge-${map[t.type] || "default"}">${t.type}</span>`;
+    }).join(" ");
+    const statusBadge = r.hasTranscript
+      ? '<span class="badge badge-ready">Ready</span>'
+      : '<span class="badge badge-default">No transcript</span>';
+    return `
+      <div class="rec-row" onclick="openTranscript('${r.id}')">
+        <div class="rec-wave">
+          <canvas id="wave-${r.id}" width="60" height="36" style="width:100%;height:100%;"></canvas>
+        </div>
+        <div class="rec-info">
+          <div class="rec-title">${r.baseName}</div>
+          <div class="rec-meta">
+            <span class="mono">${formatDate(r.modified)}</span>
+            <span class="mono">${formatDuration(r.duration)}</span>
+            <span class="mono">${formatSize(mainTrack?.size || 0)}</span>
+            ${badges}
+          </div>
+        </div>
+        <div class="rec-actions">
+          ${statusBadge}
+          <button class="btn btn-ghost btn-icon" onclick="event.stopPropagation();deleteRecording('${r.id}')" title="Delete">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          </button>
+        </div>
+      </div>
+    `;
+  }).join("");
+  // Draw mini waveforms
+  requestAnimationFrame(() => {
+    filtered.forEach(r => {
+      const c = document.getElementById(`wave-${r.id}`);
+      if (!c) return;
+      const ctx = c.getContext("2d");
+      ctx.clearRect(0, 0, 60, 36);
+      ctx.strokeStyle = "rgba(161,0,255,0.5)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (let x = 0; x < 60; x += 2) {
+        const y = 18 + Math.sin(x * 0.3 + r.id.length) * 10 * Math.random();
+        if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    });
+  });
+}
+function setFilter(f) {
+  state.filter = f;
+  document.querySelectorAll(".filter-tab").forEach(t => t.classList.toggle("active", t.dataset.filter === f));
+  renderLibrary();
+}
+
+// ═════ Transcript ═════
+async function openTranscript(id) {
+  state.currentRecording = id;
+  document.getElementById("transcript-title").textContent = id;
+  showScreen("transcript");
+  document.getElementById("transcript-content").innerHTML = "<p class=\"body\">Loading...</p>";
+  document.getElementById("insights-content").innerHTML = "";
+  try {
+    const [t, i] = await Promise.all([
+      get(`/recording/${id}/transcript`).catch(() => null),
+      get(`/recording/${id}/insights`).catch(() => null),
+    ]);
+    renderTranscript(t);
+    renderInsights(i);
+  } catch (e) {
+    document.getElementById("transcript-content").innerHTML = "";
+    document.getElementById("transcript-empty").classList.remove("hidden");
+  }
+}
+function renderTranscript(data) {
+  const container = document.getElementById("transcript-content");
+  const empty = document.getElementById("transcript-empty");
+  if (!data || data.error) {
+    container.innerHTML = "";
+    empty.classList.remove("hidden");
+    return;
+  }
+  empty.classList.add("hidden");
+  container.innerHTML = (data.lines || []).map((line, idx) => `
+    <div class="transcript-line" data-idx="${idx}">
+      <div class="transcript-speaker">${line.speaker}</div>
+      <div class="transcript-time">${line.timestamp}</div>
+      <div class="transcript-text">${escapeHtml(line.text)}</div>
+    </div>
+  `).join("");
+}
+function renderInsights(data) {
+  const container = document.getElementById("insights-content");
+  const empty = document.getElementById("insights-empty");
+  if (!data || data.error || (!data.decisions?.length && !data.actions?.length && !data.risks?.length)) {
+    container.innerHTML = "";
+    empty.classList.remove("hidden");
+    return;
+  }
+  empty.classList.add("hidden");
+  let html = "";
+  if (data.decisions?.length) {
+    html += `<h3 style="margin-bottom:var(--space-2);color:var(--accent);">Decisions</h3>`;
+    html += data.decisions.map(d => `<div class="insight-item insight-decision"><div class="insight-dot"></div><div class="insight-text">${escapeHtml(d)}</div></div>`).join("");
+  }
+  if (data.actions?.length) {
+    html += `<h3 style="margin:var(--space-3) 0 var(--space-2);color:var(--success);">Action Items</h3>`;
+    html += data.actions.map(a => `<div class="insight-item insight-action"><div class="insight-dot"></div><div class="insight-text">${escapeHtml(a)}</div></div>`).join("");
+  }
+  if (data.risks?.length) {
+    html += `<h3 style="margin:var(--space-3) 0 var(--space-2);color:var(--danger);">Risks</h3>`;
+    html += data.risks.map(r => `<div class="insight-item insight-risk"><div class="insight-dot"></div><div class="insight-text">${escapeHtml(r)}</div></div>`).join("");
+  }
+  container.innerHTML = html;
+}
+function highlightTranscript() {
+  const q = document.getElementById("transcript-search")?.value.toLowerCase();
+  document.querySelectorAll(".transcript-text").forEach(el => {
+    const text = el.textContent;
+    if (!q) {
+      el.innerHTML = escapeHtml(text);
+      return;
+    }
+    const idx = text.toLowerCase().indexOf(q);
+    if (idx >= 0) {
+      el.innerHTML = escapeHtml(text.slice(0, idx)) + `<span class="highlight">${escapeHtml(text.slice(idx, idx + q.length))}</span>` + escapeHtml(text.slice(idx + q.length));
+    }
+  });
+}
+async function transcribeCurrent() {
+  if (!state.currentRecording) return;
+  try {
+    await post(`/recording/${state.currentRecording}/transcribe`, { model: state.settings.whisperModel });
+    toast("Transcription started", "info");
+    setTimeout(() => openTranscript(state.currentRecording), 3000);
+  } catch (e) {
+    toast("Transcription failed: " + e.message, "error");
+  }
+}
+
+// ═════ Delete ═════
+function deleteRecording(id) {
+  document.getElementById("confirm-title").textContent = "Delete Recording";
+  document.getElementById("confirm-body").textContent = `Permanently delete "${id}" and all its tracks? This cannot be undone.`;
+  const btn = document.getElementById("confirm-action");
+  btn.onclick = async () => {
+    closeModal();
+    try {
+      await fetch(API + "/recording/" + id, { method: "DELETE" });
+      toast("Recording deleted", "success");
+      loadRecordings();
+    } catch (e) {
+      toast("Delete failed", "error");
+    }
+  };
+  document.getElementById("confirm-modal").classList.add("open");
+}
+function closeModal() {
+  document.getElementById("confirm-modal").classList.remove("open");
+}
+
+// ═════ Settings ═════
+async function loadSettings() {
+  try {
+    const s = await get("/settings");
+    state.settings = s;
+    applySettingsUI();
+  } catch (e) {
+    console.error("Failed to load settings", e);
+  }
+}
+function applySettingsUI() {
+  const set = (id, val) => {
+    const el = document.getElementById("setting-" + id);
+    if (!el) return;
+    if (el.type === "checkbox") el.checked = !!val;
+    else el.value = val != null ? val : "";
+  };
+  set("outputDir", state.settings.outputDir);
+  set("micDevice", state.settings.micDevice);
+  set("systemDevice", state.settings.systemDevice);
+  set("sampleRate", state.settings.sampleRate);
+  set("whisperModel", state.settings.whisperModel);
+  set("autoTranscribe", state.settings.autoTranscribe);
+  set("launchAtLogin", state.settings.launchAtLogin);
+}
+async function saveSetting(key, value) {
+  state.settings[key] = value;
+  try {
+    await post("/settings", state.settings);
+    toast("Settings saved", "success");
+  } catch (e) {
+    toast("Failed to save settings", "error");
+  }
+}
+
+// ═════ Utilities ═════
+function toast(msg, type = "info") {
+  const container = document.getElementById("toast-container");
+  const el = document.createElement("div");
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  container.appendChild(el);
+  setTimeout(() => { el.style.opacity = "0"; setTimeout(() => el.remove(), 300); }, 3000);
+}
+function escapeHtml(s) {
+  const div = document.createElement("div");
+  div.textContent = s;
+  return div.innerHTML;
+}
+function openRecordingsFolder() {
+  const dir = state.settings.outputDir || "~/Desktop/recordings";
+  toast("Open " + dir, "info");
+}
+
+// Close modal on backdrop click
+document.getElementById("confirm-modal").addEventListener("click", e => {
+  if (e.target === document.getElementById("confirm-modal")) closeModal();
+});
+</script>
+</body>
+</html>
