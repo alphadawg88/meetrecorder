@@ -42,7 +42,9 @@ final class SettingsStore: ObservableObject {
     // only used when the user prefers them AND both keys are present.
     @AppStorage("preferCloud") var preferCloud: Bool = false
 
-    // Selected on-device transcription model (WhisperKit).
+    // Selected on-device transcription model (WhisperKit). large-v3 is the only
+    // variant that handles Chinese / mixed English-Chinese acceptably; small &
+    // turbo hallucinate badly on non-English. Worth the extra size/latency.
     @AppStorage("whisperModel") var whisperModel: String = "large-v3"
     // Selected on-device summary model (full MLX HuggingFace model id).
     // Defaults to the 3B (~2 GB resident) for a lean baseline that runs on

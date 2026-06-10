@@ -36,11 +36,45 @@ actor WhisperKitTranscriber: Transcriber {
         try await preload()
         guard let pipe else { throw LocalModelError.notLoaded }
 
-        let options = DecodingOptions(task: .transcribe, language: await Self.whisperLanguage())
+        let forcedLanguage = await Self.whisperLanguage()   // nil = auto
+        let options = DecodingOptions(
+            task: .transcribe,                       // keep source language (don't translate)
+            language: forcedLanguage,
+            // When no language is forced, detect it — and with VAD chunking this
+            // happens per speech chunk, which is the best Whisper can do for
+            // mixed English/Chinese (code-switching) audio.
+            detectLanguage: forcedLanguage == nil,
+            skipSpecialTokens: true,                 // strip <|...|> control tokens
+            withoutTimestamps: true,
+            suppressBlank: true,                     // don't emit leading blanks
+            // Anti-hallucination thresholds (WhisperKit defaults, set explicitly):
+            compressionRatioThreshold: 2.4,          // catches repetition ("Mima mima…")
+            logProbThreshold: -1.0,                  // retries low-confidence windows
+            noSpeechThreshold: 0.6,                  // skip non-speech
+            // KEY: VAD chunking only runs the model on detected speech, so silent
+            // stretches no longer hallucinate [BLANK_AUDIO]/[Silence]/filler.
+            chunkingStrategy: .vad
+        )
         let results = try await pipe.transcribe(audioPath: audioURL.path, decodeOptions: options)
-        return results.map(\.text)
+        let text = results.map(\.text)
             .joined(separator: " ")
             .trimmingCharacters(in: .whitespacesAndNewlines)
+        return Self.cleanArtifacts(text)
+    }
+
+    /// Strip residual non-speech artifacts Whisper sometimes emits as literal text
+    /// (so they don't pollute the transcript or mislead the summarizer).
+    private static func cleanArtifacts(_ text: String) -> String {
+        let patterns = ["\\[BLANK_AUDIO\\]", "\\[Silence\\]", "\\[ ?Silence ?\\]",
+                        "\\[Pause\\]", "\\[ ?Pause ?\\]", "\\(speaking in foreign language\\)",
+                        "\\[speaking in foreign language\\]"]
+        var out = text
+        for p in patterns {
+            out = out.replacingOccurrences(of: p, with: "", options: [.regularExpression, .caseInsensitive])
+        }
+        // Collapse the whitespace those removals leave behind.
+        out = out.replacingOccurrences(of: " +", with: " ", options: .regularExpression)
+        return out.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     /// Map the app's source-language setting to a Whisper language code.

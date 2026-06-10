@@ -33,7 +33,7 @@ struct SettingsView: View {
                     ModelCard(
                         id: "large-v3",
                         name: "Whisper large-v3",
-                        tag: "Most accurate",
+                        tag: "Best for Chinese & mixed",
                         size: "~1.5 GB",
                         selected: $settings.whisperModel,
                         isDownloaded: models.isWhisperDownloaded("large-v3"),
@@ -45,7 +45,7 @@ struct SettingsView: View {
                     ModelCard(
                         id: "small",
                         name: "Whisper small",
-                        tag: "Fast & light",
+                        tag: "Fast · English only",
                         size: "~244 MB",
                         selected: $settings.whisperModel,
                         isDownloaded: models.isWhisperDownloaded("small"),
