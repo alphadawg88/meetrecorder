@@ -10,6 +10,12 @@ targets:
       base:
         SWIFT_VERSION: "5.0"
         PRODUCT_NAME: Glyph
+        # Stable self-signed identity so the Screen Recording / Mic TCC grant
+        # survives rebuilds (ad-hoc keys TCC to a per-build cdhash → re-prompts).
+        # Cert "Glyph Local Signing" lives in the login keychain (self-signed,
+        # codeSigning EKU). Recreate via the openssl+security steps if missing.
+        CODE_SIGN_IDENTITY: "Glyph Local Signing"
+        CODE_SIGN_STYLE: Manual
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         PRODUCT_BUNDLE_IDENTIFIER: com.alfredwong.glyph
         MARKETING_VERSION: 1.0.1
