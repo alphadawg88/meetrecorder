@@ -37,7 +37,8 @@ struct ContentView: View {
             FooterView()
         }
         .frame(width: 360)
-        .background(.ultraThinMaterial)
+        .background(DesignToken.bgBase)
+        .preferredColorScheme(.dark)
         .onAppear {
             recordingManager.inject(calendarManager: calendarManager)
         }
@@ -241,7 +242,7 @@ struct ConfigurationBanner: View {
             // Needs-download state: informational (not an error — this is first-run)
             HStack(spacing: DS.Space.sm) {
                 Image(systemName: "arrow.down.circle.fill")
-                    .foregroundColor(Color(nsColor: .systemBlue))
+                    .foregroundColor(DesignToken.accent)
                     .imageScale(.small)
                     .accessibilityHidden(true)
                 Text("Download on-device models to begin.")
@@ -252,7 +253,7 @@ struct ConfigurationBanner: View {
             .padding(DS.Space.sm)
             .background(
                 RoundedRectangle(cornerRadius: DS.Radius.md, style: .continuous)
-                    .fill(Color(nsColor: .systemBlue).opacity(0.08))
+                    .fill(DesignToken.accent.opacity(0.08))
             )
         }
     }
@@ -297,6 +298,22 @@ struct UpcomingEventCard: View {
 private struct CaptureModeChip: View {
     let source: AudioSource
 
+    private var chipColor: Color {
+        switch source {
+        case .mic:    return DesignToken.channelMic
+        case .system: return DesignToken.channelSystem
+        case .both:   return DesignToken.accent
+        }
+    }
+
+    private var chipBg: Color {
+        switch source {
+        case .mic:    return DesignToken.channelMic.opacity(0.12)
+        case .system: return DesignToken.channelSystem.opacity(0.12)
+        case .both:   return DesignToken.accent.opacity(0.12)
+        }
+    }
+
     var body: some View {
         HStack(spacing: DS.Space.xs) {
             Image(systemName: source.systemImage)
@@ -305,12 +322,12 @@ private struct CaptureModeChip: View {
             Text(source.chipLabel)
                 .font(DS.Font.caption)
         }
-        .foregroundColor(DS.Color.secondary)
+        .foregroundColor(chipColor)
         .padding(.horizontal, DS.Space.sm)
         .padding(.vertical, DS.Space.xs)
         .background(
             Capsule(style: .continuous)
-                .fill(DS.Color.surfaceSecondary)
+                .fill(chipBg)
         )
         .accessibilityLabel("Capturing: \(source.chipLabel)")
     }
@@ -395,6 +412,7 @@ struct ProcessingView: View {
             ProgressView()
                 .controlSize(.small)
                 .scaleEffect(0.8)
+                .tint(DesignToken.accent)
 
             Text(stage)
                 .font(DS.Font.caption)
@@ -439,6 +457,7 @@ struct HistoryView: View {
                     .listRowBackground(Color.clear)
             }
             .listStyle(.plain)
+            .scrollContentBackground(.hidden)
             .frame(height: min(CGFloat(recordingManager.records.count), 5) * 40)
             .environment(\.defaultMinListRowHeight, 36)
         }

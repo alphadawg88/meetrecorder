@@ -19,7 +19,7 @@ struct SettingsView: View {
                     .buttonStyle(GhostButtonStyle())
             }
             .padding(DS.Space.xl)
-            .background(.ultraThinMaterial)
+            .background(DesignToken.bgBase)
 
             Form {
                 // MARK: On-device models (primary — this is the new first section)

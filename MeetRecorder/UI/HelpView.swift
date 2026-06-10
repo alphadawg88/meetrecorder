@@ -16,7 +16,7 @@ struct HelpView: View {
                     .buttonStyle(GhostButtonStyle())
             }
             .padding(DS.Space.xl)
-            .background(.ultraThinMaterial)
+            .background(DesignToken.bgBase)
 
             ScrollView {
                 VStack(alignment: .leading, spacing: DS.Space.lg) {
