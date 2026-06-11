@@ -25,6 +25,9 @@ actor MicrophoneCapture {
     }
 
     func stop() -> URL {
+        // nil the recorder so any racing setPaused(false) after stop is a no-op
+        // (both serialize on the actor; a stale .record() would corrupt the file).
+        defer { recorder = nil }
         recorder?.stop()
         return tempURL
     }

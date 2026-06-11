@@ -21,8 +21,10 @@ actor SystemAudioCapture: NSObject, SCStreamOutput {
     private let sampleQueue = DispatchQueue(label: "com.alfredwong.glyph.systemaudio.samples")
 
     func start() async throws {
-        // Reset per-session state.
+        // Reset per-session state. (isPaused MUST reset here — else a Stop-while-
+        // paused leaves it true and the NEXT recording silently drops every buffer.)
         isReady = false
+        isPaused = false
         lastPTS = .invalid
         loggedWriterFailure = false
         tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("system_\(UUID().uuidString).m4a")

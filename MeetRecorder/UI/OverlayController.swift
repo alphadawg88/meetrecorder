@@ -46,6 +46,9 @@ final class OverlayController {
     }
 
     private func hideRecordingOverlay() {
+        if let p = recordingPanel {
+            NotificationCenter.default.removeObserver(self, name: NSWindow.didMoveNotification, object: p)
+        }
         recordingPanel?.orderOut(nil)
         recordingPanel = nil
     }
@@ -64,7 +67,7 @@ final class OverlayController {
             onDismiss: { [weak self] in self?.dismissCallNudge() }
         )
         panel.contentView = NSHostingView(rootView: root)
-        positionAtAnchor(panel, size: OverlaySize.toast)
+        positionAtAnchor(panel, size: OverlaySize.toast, useSaved: false)
         panel.alphaValue = 0
         panel.orderFrontRegardless()
         NSAnimationContext.runAnimationGroup { ctx in
@@ -82,6 +85,7 @@ final class OverlayController {
         nudgeDismiss?.cancel(); nudgeDismiss = nil
         guard let panel = nudgePanel else { return }
         nudgePanel = nil
+        NotificationCenter.default.removeObserver(self, name: NSWindow.didMoveNotification, object: panel)
         NSAnimationContext.runAnimationGroup({ ctx in
             ctx.duration = 0.16
             panel.animator().alphaValue = 0
@@ -113,19 +117,25 @@ final class OverlayController {
         return panel
     }
 
-    /// Resize keeping the bottom-right corner anchored (grows up + left).
+    /// Resize keeping the bottom-right corner anchored (grows up + left), clamped
+    /// to the visible screen so collapse/expand near an edge can't drift off-screen.
     private func resize(_ panel: NSPanel, to size: CGSize) {
         let f = panel.frame
-        let newOrigin = NSPoint(x: f.maxX - size.width, y: f.minY)
+        var newOrigin = NSPoint(x: f.maxX - size.width, y: f.minY)
+        if let vis = NSScreen.main?.visibleFrame {
+            newOrigin.x = min(max(newOrigin.x, vis.minX), vis.maxX - size.width)
+            newOrigin.y = min(max(newOrigin.y, vis.minY), vis.maxY - size.height)
+        }
         panel.setFrame(NSRect(origin: newOrigin, size: size), display: true, animate: false)
     }
 
-    /// Place at the saved position, or default to the bottom-right corner.
-    private func positionAtAnchor(_ panel: NSPanel, size: CGSize) {
+    /// Place at the saved position (recording overlay only), or the bottom-right
+    /// corner. The nudge toast always uses the default corner (`useSaved: false`).
+    private func positionAtAnchor(_ panel: NSPanel, size: CGSize, useSaved: Bool = true) {
         guard let screen = NSScreen.main else { return }
         let vis = screen.visibleFrame
         var origin: NSPoint
-        if let saved = savedPosition() {
+        if useSaved, let saved = savedPosition() {
             origin = saved
         } else {
             origin = NSPoint(x: vis.maxX - size.width - edgeInset, y: vis.minY + edgeInset)
