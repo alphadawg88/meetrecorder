@@ -1,0 +1,34 @@
+{
+  "$schema": "product-loop/metrics/v1",
+  "run_id": "2026-06-11_awareness-calldetect",
+  "project": "glyph-meetrecorder",
+  "kind": "feature",
+  "stage_mask": ["0","1","2","3","4","6","7","8","9"],
+  "started": "2026-06-10",
+  "ended": "2026-06-11",
+  "note_on_data": "Reconstructed retro — no live metrics.json existed; cycle_min omitted (not instrumented).",
+  "stages": {
+    "intake":      { "gate": "A", "passed": true,  "first_pass": true,  "note": "2 features scoped via 2 questions" },
+    "architecture":{ "gate": "B", "passed": true,  "first_pass": true,  "note": "CoreAudio DeviceIsRunningSomewhere + 10s debounce + isBusy guard (inline ADR)" },
+    "design":      { "gate": "C", "passed": true,  "first_pass": true,  "note": "ux-designer brief; v2.0 dark tokens; chip/cue/menu-bar/notification treatments" },
+    "build":       { "gate": "D", "passed": true,  "first_pass": false, "note": "FAILED first: xcodegen not run → 'cannot find CallDetector in scope'; regenerated → green" },
+    "qa":          { "gate": "E", "passed": true,  "first_pass": false, "note": "qa-editor found P1 + P2; held the gate; fixed → re-passed" },
+    "uat":         { "gate": "F", "passed": true,  "first_pass": true,  "note": "live call 11:00; glyph.log evidence: fire-once, no self-prompt, clean 1h51m" },
+    "release":     { "gate": "G", "passed": "partial", "first_pass": true, "note": "branch pushed to remote as backup; main held pending UAT merge" }
+  },
+  "defects": [
+    { "id": "D1", "severity": "P1", "title": "Notification body-tap silently starts recording", "layer": "PROCESS", "born_stage": "build", "caught_stage": "qa", "escape_distance": 1, "root_cause": "delegate routed on category==CALL_DETECTED, not only the explicit action", "lesson_ref": "L5" },
+    { "id": "D2", "severity": "P2", "title": "CoreAudio listeners not torn down on quit", "layer": "BUILD", "born_stage": "build", "caught_stage": "qa", "escape_distance": 1, "root_cause": "no applicationWillTerminate", "lesson_ref": null },
+    { "id": "D3", "severity": "P2", "title": "Build fails 'cannot find CallDetector in scope'", "layer": "BUILD", "born_stage": "build", "caught_stage": "build", "escape_distance": 0, "root_cause": "new file added but xcodegen not regenerated", "lesson_ref": "L3" },
+    { "id": "D4", "severity": "P1", "title": "Signing dual-cert DR flip → TCC permission re-prompt loop", "layer": "BUILD", "born_stage": "build-tooling", "caught_stage": "operate", "escape_distance": 4, "root_cause": "_build_check.sh re-signed with old 'Glyph Local Dev' after xcodebuild signed 'Glyph Local Signing'", "lesson_ref": "L4", "recurrence": true }
+  ],
+  "metrics": {
+    "defects_total": 4,
+    "defects_escaped_to_user": 1,
+    "escape_rate": 0.25,
+    "hard_gate_first_pass_rate": 0.33,
+    "rework_count": 3,
+    "known_class_recurrences": 1
+  },
+  "notes": "Tools used: codesign -dvvv (signing Authority), glyph.log (UAT evidence), vmmap (MLX mem, earlier in session). The ONLY escape-to-user (D4) is a recurrence (L4, 2nd perm-loop) of a class with NO automated guard — top promotion target."
+}
