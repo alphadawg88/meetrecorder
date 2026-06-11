@@ -7,6 +7,11 @@ actor SystemAudioCapture: NSObject, SCStreamOutput {
     private var audioInput: AVAssetWriterInput?
     private var tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("system_\(UUID().uuidString).m4a")
     private var isReady = false
+    // While paused we simply drop incoming buffers — ScreenCaptureKit has no
+    // native pause. The monotonic-PTS guard below makes the resume seamless:
+    // the next kept buffer's PTS is still > lastPTS, so the writer concatenates
+    // across the gap (the recording skips the paused stretch).
+    private var isPaused = false
     // Last appended presentation timestamp — AVAssetWriterInput throws on
     // out-of-order samples, so we drop any buffer that goes backwards.
     private var lastPTS: CMTime = .invalid
@@ -55,6 +60,14 @@ actor SystemAudioCapture: NSObject, SCStreamOutput {
         Log.info("SystemAudio capture started (writer.status=\(assetWriter?.status.rawValue ?? -1))")
     }
 
+    /// Pause/resume system-audio capture. We keep the stream + writer alive and
+    /// simply stop appending buffers while paused (ScreenCaptureKit has no native
+    /// pause); the monotonic-PTS guard makes resume seamless across the gap.
+    func setPaused(_ paused: Bool) {
+        isPaused = paused
+        Log.info("SystemAudio \(paused ? "paused" : "resumed")")
+    }
+
     func stop() async -> URL {
         try? await stream?.stopCapture()
         // Only finalize an input that actually started writing, else finishWriting can fail.
@@ -76,6 +89,8 @@ actor SystemAudioCapture: NSObject, SCStreamOutput {
     }
 
     private func append(buffer: CMSampleBuffer) async {
+        // Drop everything while paused — resume picks up at the next buffer's PTS.
+        guard !isPaused else { return }
         // Only handle a complete buffer carrying a usable timestamp.
         guard CMSampleBufferDataIsReady(buffer) else { return }
         let pts = CMSampleBufferGetPresentationTimeStamp(buffer)

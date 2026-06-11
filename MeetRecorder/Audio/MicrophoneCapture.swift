@@ -18,6 +18,12 @@ actor MicrophoneCapture {
         recorder?.record()
     }
 
+    /// Pause/resume the mic. AVAudioRecorder.pause() halts encoding; record()
+    /// resumes appending to the SAME file, so the take stays continuous.
+    func setPaused(_ paused: Bool) {
+        if paused { recorder?.pause() } else { recorder?.record() }
+    }
+
     func stop() -> URL {
         recorder?.stop()
         return tempURL

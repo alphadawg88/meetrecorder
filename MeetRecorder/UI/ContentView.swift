@@ -296,7 +296,7 @@ struct UpcomingEventCard: View {
 
 // MARK: - Capture Mode Chip
 
-private struct CaptureModeChip: View {
+struct CaptureModeChip: View {
     let source: AudioSource
 
     private var chipColor: Color {

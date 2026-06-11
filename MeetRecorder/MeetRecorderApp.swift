@@ -22,6 +22,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var recordingManager = RecordingManager()
     private var calendarManager = CalendarManager()
     private let callDetector = CallDetector()
+    private var overlayController: OverlayController!
     // Ticks every second while recording to advance the menu-bar elapsed timer.
     private var menuTimer: Timer?
 
@@ -54,6 +55,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
             .store(in: &cancellables)
 
+        overlayController = OverlayController(recordingManager: recordingManager)
         configureCallDetector()
     }
 
@@ -67,8 +69,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             guard let self else { return true }
             return self.recordingManager.isRecording || !self.recordingManager.processingStage.isEmpty
         }
-        callDetector.onCallLikelyStarted = {
+        callDetector.onCallLikelyStarted = { [weak self] in
             guard SettingsStore.shared.callDetectEnabled else { return }
+            // On-screen nudge overlay (in-context) + a system notification as the
+            // cross-context backstop (reaches the user even over a fullscreen app).
+            self?.overlayController.showCallNudge()
             NotificationManager.notifyWithStartAction(
                 title: "You're in a call",
                 body: "Want Glyph to record it? You can dismiss this.",
@@ -189,16 +194,21 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let monoFont = NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .regular)
 
         if isRecording {
-            // Recording: waveform icon + ticking MM:SS in the DS danger red (#FF4444).
-            let red = NSColor(hex: "FF4444")
-            let elapsed = Self.elapsedString(since: recordingManager.recordingStartTime)
-            button.image = NSImage(systemSymbolName: "waveform.circle.fill", accessibilityDescription: "Recording")
-            button.contentTintColor = red
+            // Recording: waveform + ticking MM:SS in danger red (#FF4444). When
+            // paused: pause icon + frozen time in warning amber (#FFAB00).
+            let paused = recordingManager.isPaused
+            let color = NSColor(hex: paused ? "FFAB00" : "FF4444")
+            let elapsed = RecordingOverlayView.format(recordingManager.elapsed())
+            button.image = NSImage(
+                systemSymbolName: paused ? "pause.circle.fill" : "waveform.circle.fill",
+                accessibilityDescription: paused ? "Paused" : "Recording"
+            )
+            button.contentTintColor = color
             button.attributedTitle = NSAttributedString(
                 string: " \(elapsed)",
-                attributes: [.font: monoFont, .foregroundColor: red]
+                attributes: [.font: monoFont, .foregroundColor: color]
             )
-            button.toolTip = "Glyph — Recording (\(elapsed))"
+            button.toolTip = paused ? "Glyph — Paused (\(elapsed))" : "Glyph — Recording (\(elapsed))"
         } else if isProcessing {
             // Processing: distinct ellipsis icon + N% in the DS warning amber (#FFAB00).
             let amber = NSColor(hex: "FFAB00")
@@ -219,11 +229,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    private static func elapsedString(since start: Date?) -> String {
-        guard let start else { return "00:00" }
-        let total = max(0, Int(Date().timeIntervalSince(start)))
-        return String(format: "%02d:%02d", total / 60, total % 60)
-    }
 
     private var cancellables = Set<AnyCancellable>()
 }

@@ -22,6 +22,12 @@ final class RecordingManager: ObservableObject {
     /// Start time of the in-progress recording (nil when idle). Drives the live
     /// menu-bar elapsed timer.
     @Published var recordingStartTime: Date?
+    /// True while the in-progress recording is paused (capture halted, timer frozen).
+    @Published var isPaused = false
+
+    // Paused-time bookkeeping so the displayed elapsed freezes during a pause.
+    private var pausedAccumulated: TimeInterval = 0
+    private var pauseStartedAt: Date?
 
     private let micCapture = MicrophoneCapture()
     private let systemCapture = SystemAudioCapture()
@@ -91,6 +97,9 @@ final class RecordingManager: ObservableObject {
         )
         currentRecord = record
         isRecording = true
+        isPaused = false
+        pausedAccumulated = 0
+        pauseStartedAt = nil
         recordingStartTime = record.startTime
         let source = settings.audioSource
         activeSource = source
@@ -128,6 +137,8 @@ final class RecordingManager: ObservableObject {
         reminderTimer?.invalidate()
         reminderTimer = nil
         isRecording = false
+        isPaused = false
+        pauseStartedAt = nil
         recordingStartTime = nil
         processingStage = "Finalizing audio…"
 
@@ -173,6 +184,47 @@ final class RecordingManager: ObservableObject {
                 await handleError(error, context: "Failed to stop or mix audio")
             }
         }
+    }
+
+    /// Pause the in-progress recording: halt both capture channels and freeze the
+    /// elapsed clock. Idempotent; no-op when not recording or already paused.
+    func pauseRecording() {
+        guard isRecording, !isPaused else { return }
+        isPaused = true
+        pauseStartedAt = Date()
+        let source = activeSource
+        Log.info("Recording PAUSE — source=\(source.rawValue)")
+        Task {
+            if source.capturesMic { await micCapture.setPaused(true) }
+            if source.capturesSystem { await systemCapture.setPaused(true) }
+        }
+    }
+
+    /// Resume a paused recording: bank the paused interval, restart capture.
+    func resumeRecording() {
+        guard isRecording, isPaused else { return }
+        if let started = pauseStartedAt {
+            pausedAccumulated += Date().timeIntervalSince(started)
+        }
+        pauseStartedAt = nil
+        isPaused = false
+        let source = activeSource
+        Log.info("Recording RESUME — source=\(source.rawValue)")
+        Task {
+            if source.capturesMic { await micCapture.setPaused(false) }
+            if source.capturesSystem { await systemCapture.setPaused(false) }
+        }
+    }
+
+    func togglePause() { isPaused ? resumeRecording() : pauseRecording() }
+
+    /// Effective elapsed recording time at `now`, excluding paused stretches.
+    /// Freezes while paused (the live pause interval is subtracted too).
+    func elapsed(at now: Date = Date()) -> TimeInterval {
+        guard let start = recordingStartTime else { return 0 }
+        var t = now.timeIntervalSince(start) - pausedAccumulated
+        if let paused = pauseStartedAt { t -= now.timeIntervalSince(paused) }
+        return max(0, t)
     }
 
     /// Fire a calm "still recording" reminder every N minutes (0 = off) so a live
@@ -269,6 +321,8 @@ final class RecordingManager: ObservableObject {
         Log.error("\(context): \(error.localizedDescription) [\(error)]")
         await MainActor.run {
             isRecording = false
+            isPaused = false
+            pauseStartedAt = nil
             recordingStartTime = nil
             reminderTimer?.invalidate()
             reminderTimer = nil
