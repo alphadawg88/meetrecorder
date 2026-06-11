@@ -1,0 +1,35 @@
+{
+  "$schema": "product-loop/metrics/v1",
+  "run_id": "2026-06-11_floating-overlay",
+  "project": "glyph-meetrecorder",
+  "kind": "feature",
+  "stage_mask": ["0","1","2","3","4","9"],
+  "started": "2026-06-11",
+  "ended": "2026-06-11",
+  "note_on_data": "Reconstructed retro. 2nd product-loop run. UAT (Gate F) pending user live-test of the overlay.",
+  "stages": {
+    "intake":      { "gate": "A", "passed": true,  "first_pass": true,  "note": "overlay scope + 'always-on?' answered (on-while-recording, collapsible)" },
+    "architecture":{ "gate": "B", "passed": true,  "first_pass": true,  "note": "pause ADR: mic native, system-audio drop-buffers, freeze-aware elapsed" },
+    "design":      { "gate": "C", "passed": "deferred-defect", "first_pass": false, "note": "ux-designer brief; AA contrast on Stop label FLAGGED but shipped (deferred) → user required fix" },
+    "build":       { "gate": "D", "passed": true,  "first_pass": false, "note": "failed first (CaptureModeChip private); L3 auto-regen + L4 SIGN-CHECK both FIRED ✓" },
+    "qa":          { "gate": "E", "passed": true,  "first_pass": false, "note": "qa-editor caught P1 (stop-while-paused silent) + 3 P2; all fixed" },
+    "uat":         { "gate": "F", "passed": null,  "first_pass": null,  "note": "pending user live-test" }
+  },
+  "defects": [
+    { "id": "D1", "severity": "P1", "title": "Stop-while-paused leaves actor isPaused=true → next recording silently blank", "layer": "BUILD", "born_stage": "build", "caught_stage": "qa", "escape_distance": 1, "root_cause": "isPaused not reset in SystemAudioCapture.start()", "lesson_ref": "L8" },
+    { "id": "D2", "severity": "P2", "title": "Stale AVAudioRecorder after stop → racing setPaused corrupts file", "layer": "BUILD", "born_stage": "build", "caught_stage": "qa", "escape_distance": 1, "root_cause": "recorder not niled in stop()", "lesson_ref": "L8" },
+    { "id": "D3", "severity": "P2", "title": "didMoveNotification observer added per panel, never removed", "layer": "BUILD", "born_stage": "build", "caught_stage": "qa", "escape_distance": 1, "root_cause": "no matching removeObserver on teardown", "lesson_ref": null },
+    { "id": "D4", "severity": "P2", "title": "Panel resize had no screen clamp", "layer": "BUILD", "born_stage": "build", "caught_stage": "qa", "escape_distance": 1, "root_cause": "clamp only at initial placement", "lesson_ref": null },
+    { "id": "D5", "severity": "P2", "title": "White Stop label on #FF4444 = 3.41:1 (fails AA)", "layer": "DESIGN", "born_stage": "design", "caught_stage": "uat", "escape_distance": 2, "root_cause": "indicator color reused as button fill; AA finding deferred not blocked", "lesson_ref": "design:button-fill-contrast" }
+  ],
+  "metrics": {
+    "defects_total": 5,
+    "defects_escaped_to_user": 1,
+    "escape_rate": 0.20,
+    "hard_gate_first_pass_rate": 0.0,
+    "rework_count": 3,
+    "known_class_recurrences": 0,
+    "promoted_guards_that_held": ["L3 auto-regen", "L4 signing-assert", "L5 destructive-intent"]
+  },
+  "notes": "HEADLINE: all 3 run-1 promoted guards fired/held — zero recurrence of signing/xcodegen/destructive-intent. Escapes were NEW classes (pause-state lifecycle, button-fill contrast). Escape rate 0.25→0.20 (improving). Tools: python WCAG calc (5.38:1 verified), codesign -dvvv. L6 honored (numeric contrast, not eyeballed)."
+}
