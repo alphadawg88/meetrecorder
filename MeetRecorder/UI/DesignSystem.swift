@@ -71,8 +71,14 @@ enum DesignToken {
     static let success      = Color(nsColor: NSColor(hex: "00E676"))
     /// #FFAB00 — warning / processing
     static let warning      = Color(nsColor: NSColor(hex: "FFAB00"))
-    /// #FF4444 — danger: recording indicator, errors
+    /// #FF4444 — danger: recording indicator, errors, text-on-dark (4.8:1 on bgRaised ✓)
     static let danger       = Color(nsColor: NSColor(hex: "FF4444"))
+    /// #D70015 — danger FILL for high-emphasis buttons. Darker than `danger` so a
+    /// WHITE label clears WCAG AA: white-on-#D70015 ≈ 5.4:1 (white-on-#FF4444 was 3.2:1).
+    /// Use for filled red buttons only; keep `danger` for dots/badges/text.
+    static let dangerButton        = Color(nsColor: NSColor(hex: "D70015"))
+    /// Pressed state of the danger button — a touch darker still.
+    static let dangerButtonPressed = Color(nsColor: NSColor(hex: "B00011"))
 
     // MARK: Channel colors
     /// #FF50A0 — microphone-only badge
@@ -173,7 +179,8 @@ extension View {
 
 /// The single high-emphasis action per state — danger red fill.
 /// 32px height, full pill, white label-caps label.
-/// Disabled: fgTertiary at 30% opacity.
+/// Uses `dangerButton` (#D70015) not `danger` (#FF4444) so the white label clears
+/// WCAG AA (5.4:1 vs the old 3.2:1). Disabled: fgTertiary at 30% opacity.
 struct RecordButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var isEnabled
 
@@ -185,8 +192,8 @@ struct RecordButtonStyle: ButtonStyle {
             .background(
                 isEnabled
                     ? (configuration.isPressed
-                        ? DesignToken.danger.opacity(0.80)
-                        : DesignToken.danger)
+                        ? DesignToken.dangerButtonPressed
+                        : DesignToken.dangerButton)
                     : DesignToken.fgTertiary.opacity(0.3)
             )
             .clipShape(Capsule())
