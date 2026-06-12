@@ -61,6 +61,7 @@ their own** (they don't inherit from the popover root).
 | **Label-caps micro-type** | 10px/semibold +0.6 tracking uppercase; status labels + section headers + button labels. |
 | **bgHover 1px panel border** | 1px strokeBorder bgHover on bgRaised floating panels (decorative edge). |
 | **Shadow black 72% / radius 16** | `.shadow(.black.opacity(0.72), radius16, y8)`; `panel.hasShadow=false`. One per surface. |
+| **Countdown hairline** | 2px bar at the bottom edge of a TIME-BOUNDED floating panel; bar = the channel/semantic token that triggered it (channelMic for the mic nudge), track = bgHover; depletes right→left over the auto-dismiss duration; **omitted under reduce-motion**. Only on transient auto-dismiss panels, never persistent surfaces. |
 
 ## 3. Component instances
 - **RecordButtonStyle** — primary; `dangerButton` #D70015 fill, white label, 32px. One per state.
@@ -120,6 +121,10 @@ their own** (they don't inherit from the popover root).
 ### 2026-06-12 — v1.1.0 patch: selected ModelCard gains a 1px accent stroke (new signature)
 **Decision:** the selected state = accent.0.12 fill **+ a 1px accent `strokeBorder`** (the "border-as-signal" move, reused from the panel border).
 **Why:** the fill-only wash was too subtle on dark — a first-time user could miss their selection. The stroke makes "I chose this" unmistakable for ~2 lines of code. Added as a protected signature move.
+
+### 2026-06-12 — CallNudgeView v2: three-row hierarchy + countdown hairline
+**Decision:** popup → 280×80; added a channelMic **eyebrow** row ("MIC ACTIVITY" labelCaps + mic.fill, 5.72:1) above the body; body made factual ("Meeting in progress. Record this session?"); added the **countdown hairline** (2px channelMic bar depleting on a bgHover track over the 8s auto-dismiss, reduce-motion → omitted); panel fade also reduce-motion gated in OverlayController.
+**Why:** the old popup read generic — flat hierarchy (body did triple duty), icon-only detection source, and an invisible 8s dismiss. The eyebrow gives a 1st→2nd→3rd eye order + names the trigger via the channel-color system; the hairline makes transience legible without urgency (anti-annoyance). New signature move "countdown hairline" added §2. All in-system; no AA miss.
 
 ### 2026-06-12 — Sub-44px dense-format target deviation: formally CLOSED
 **Decision:** RecordButtonStyle 32px (popover full-width 360px tap area) + compact overlay buttons accepted; `.contentShape(Rectangle())` mitigation in place. Backlog item closed.

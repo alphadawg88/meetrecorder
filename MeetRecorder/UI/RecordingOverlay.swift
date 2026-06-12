@@ -6,7 +6,7 @@ import AppKit
 enum OverlaySize {
     static let expanded  = CGSize(width: 248, height: 64)
     static let collapsed = CGSize(width: 104, height: 30)
-    static let toast     = CGSize(width: 280, height: 60)
+    static let toast     = CGSize(width: 280, height: 80)
 }
 
 // MARK: - Live recording overlay (STATE 1)
@@ -179,18 +179,28 @@ struct CallNudgeView: View {
     let onRecord: () -> Void
     let onDismiss: () -> Void
 
+    // Auto-dismiss countdown (1→0 over 8s). Drives the bottom "countdown hairline".
+    @State private var countdown: CGFloat = 1.0
+
     var body: some View {
         VStack(alignment: .leading, spacing: DS.Space.xs) {
-            HStack(spacing: DS.Space.sm) {
+            // Eyebrow — names the detection source via the channel-color system
+            // (mic → channelMic). labelCaps clears AA at 5.72:1.
+            HStack(spacing: DS.Space.xs + 2) {
                 Image(systemName: "mic.fill")
                     .imageScale(.small)
                     .foregroundColor(DesignToken.channelMic)
                     .accessibilityHidden(true)
-                Text("Looks like a meeting is starting. Record it?")
-                    .font(DesignToken.body())
-                    .foregroundColor(DesignToken.fgPrimary)
-                    .lineLimit(1)
+                Text("MIC ACTIVITY")
+                    .labelCaps()
+                    .foregroundColor(DesignToken.channelMic)
             }
+            // Body — the offer (factual, not "looks like")
+            Text("Meeting in progress. Record this session?")
+                .font(DesignToken.body())
+                .foregroundColor(DesignToken.fgPrimary)
+                .lineLimit(1)
+            // Actions — one primary (Record) + ghost dismiss
             HStack(spacing: DS.Space.xs) {
                 Spacer()
                 Button("Not now") { onDismiss() }
@@ -203,7 +213,7 @@ struct CallNudgeView: View {
         }
         .padding(.horizontal, DS.Space.md)
         .padding(.vertical, DS.Space.sm)
-        .frame(width: OverlaySize.toast.width, height: OverlaySize.toast.height)
+        .frame(width: OverlaySize.toast.width, height: OverlaySize.toast.height, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: DesignToken.Radius.lg, style: .continuous)
                 .fill(DesignToken.bgRaised)
@@ -211,12 +221,35 @@ struct CallNudgeView: View {
                     RoundedRectangle(cornerRadius: DesignToken.Radius.lg, style: .continuous)
                         .strokeBorder(DesignToken.bgHover, lineWidth: 1)
                 )
+                // Countdown hairline (bottom edge); omitted under reduce-motion.
+                .overlay(alignment: .bottom) {
+                    if !reduceMotion { countdownBar }
+                }
+                .clipShape(RoundedRectangle(cornerRadius: DesignToken.Radius.lg, style: .continuous))
                 .shadow(color: .black.opacity(0.72), radius: 16, x: 0, y: 8)
         )
         .preferredColorScheme(.dark)
         .tint(DesignToken.accent)
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("Meeting detected. Record or dismiss.")
+        .accessibilityLabel("Meeting detected via microphone activity. Record or dismiss. Auto-dismisses.")
+        .onAppear {
+            guard !reduceMotion else { return }
+            withAnimation(.linear(duration: 8)) { countdown = 0 }
+        }
+    }
+
+    // 2px depleting bar: channelMic over a bgHover track. Position = the signal
+    // (the bar's the only motion; it reads "this will resolve", not "act now").
+    private var countdownBar: some View {
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                Rectangle().fill(DesignToken.bgHover)
+                Rectangle().fill(DesignToken.channelMic)
+                    .frame(width: max(0, geo.size.width * countdown))
+            }
+        }
+        .frame(height: 2)
+        .accessibilityHidden(true)
     }
 }
 

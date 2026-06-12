@@ -13,6 +13,9 @@ final class OverlayController {
     private var recordingPanel: NSPanel?
     private var nudgePanel: NSPanel?
     private var nudgeDismiss: DispatchWorkItem?
+    // Captured once when the nudge is shown so show + dismiss motion stay symmetric
+    // even if the user toggles reduce-motion during the 8s the popup is up.
+    private var nudgeReduceMotion = false
     private var cancellables = Set<AnyCancellable>()
 
     private let edgeInset: CGFloat = 24
@@ -68,11 +71,15 @@ final class OverlayController {
         )
         panel.contentView = NSHostingView(rootView: root)
         positionAtAnchor(panel, size: OverlaySize.toast, useSaved: false)
-        panel.alphaValue = 0
+        // Respect reduce-motion: appear instantly, no fade. Capture once so dismiss matches.
+        nudgeReduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+        panel.alphaValue = nudgeReduceMotion ? 1 : 0
         panel.orderFrontRegardless()
-        NSAnimationContext.runAnimationGroup { ctx in
-            ctx.duration = 0.2
-            panel.animator().alphaValue = 1
+        if !nudgeReduceMotion {
+            NSAnimationContext.runAnimationGroup { ctx in
+                ctx.duration = 0.2
+                panel.animator().alphaValue = 1
+            }
         }
         nudgePanel = panel
 
@@ -86,10 +93,14 @@ final class OverlayController {
         guard let panel = nudgePanel else { return }
         nudgePanel = nil
         NotificationCenter.default.removeObserver(self, name: NSWindow.didMoveNotification, object: panel)
-        NSAnimationContext.runAnimationGroup({ ctx in
-            ctx.duration = 0.16
-            panel.animator().alphaValue = 0
-        }, completionHandler: { panel.orderOut(nil) })
+        if nudgeReduceMotion {
+            panel.orderOut(nil)
+        } else {
+            NSAnimationContext.runAnimationGroup({ ctx in
+                ctx.duration = 0.16
+                panel.animator().alphaValue = 0
+            }, completionHandler: { panel.orderOut(nil) })
+        }
     }
 
     // MARK: - Panel factory + geometry
