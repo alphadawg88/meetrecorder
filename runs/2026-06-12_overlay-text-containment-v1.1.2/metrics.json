@@ -1,0 +1,23 @@
+{
+  "$schema": "product-loop/metrics/v1",
+  "run_id": "2026-06-12_overlay-text-containment-v1.1.2",
+  "project": "glyph-meetrecorder",
+  "kind": "patch",
+  "stage_mask": ["0","2","3","4","6","7","9"],
+  "started": "2026-06-12",
+  "ended": "2026-06-12",
+  "note_on_data": "Patch fixing a user-reported RENDER defect (overlay text wrapping). UAT-confirmed fixed by the user. Shipped v1.1.2.",
+  "defects": [
+    { "id": "D1", "severity": "P1", "title": "Expanded overlay text wraps — 'System only' → 3 lines, 'Pause' → 2 lines", "layer": "DESIGN", "born_stage": "build(floating-overlay run, v1.x)", "caught_stage": "operate(user UAT)", "escape_distance": 4, "root_cause": "248px panel too narrow for content + no lineLimit on labels → HStack compresses + wraps", "lesson_ref": "render-containment", "escaped_to_user": true }
+  ],
+  "metrics": {
+    "defects_total": 1,
+    "defects_escaped_to_user": 1,
+    "escape_rate": 1.0,
+    "hard_gate_first_pass_rate": 1.0,
+    "rework_count": 1,
+    "known_class_recurrences": 1,
+    "promoted_guards_that_held": ["L3 auto-regen", "L4 signing-assert", "L5 destructive-intent"]
+  },
+  "notes": "SYSTEMIC FINDING: this is the 2nd RENDER defect to reach the user (after the v1.1.1 height P3) — both because the floating overlay is NEVER rendered/screenshot in QA. qa-editor is source-level; the main loop can't headlessly screenshot an NSPanel; the USER is currently the only render check (harness H2). Caught + fixed cleanly once reported; the fix run built+QA'd first-pass. Promotion: Gate-C 'text containment (RENDER-verify)' check added. Open: overlay auto-size-to-content (robust follow-up)."
+}

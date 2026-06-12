@@ -7,7 +7,8 @@ stable / new / held. Shared LOOP patterns: `~/.claude/knowledge/harness-lessons.
 
 | Cluster | Runs seen | Recur | Worst escape | Trend | Note |
 |---|---|---|---|---|---|
-| **Indicator/accent color used as a LABEL** (design) | run2 (chip), run3 (ModelCard tag) | 2 | caught at design gate | **regressing → promoting** | Both P1, same 3.11:1 class. Canon §3 has the law; Gate-C checklist lacks an explicit check → promote this run. |
+| **Render-only defect escaped (overlay never screenshot in QA)** | run4 (80px height P3), run5 (text wrap) | 2 | **to user** | **regressing → systemic** | Source/contrast QA can't see layout/wrap/clip; the floating NSPanel is never rendered in QA → the user is the only render check (harness H2). Gate-C "text containment (render-verify)" added; real fix = a render snapshot in QA. |
+| **Indicator/accent color used as a LABEL** (design) | run2 (chip), run3 (ModelCard tag) | 2 | caught at design gate | **promoted ✓** | Both P1, 3.11:1. Gate-C checklist check added run3; held since. |
 | **Build-tooling signing DR flip** (L4) | run1; held run2, run3 | 2 | — | **held ✓✓** | Promoted run1; held twice. CLOSED. |
 | **New file not registered** (L3) | run1; held run2, run3 | 1 | — | **held ✓✓** | Promoted run1; held twice. CLOSED. |
 | **Ambient affordance → destructive** (L5) | run1; held run2, run3 | 1 | — | **held ✓✓** | Overlay + patch buttons all explicit. Held. |
@@ -21,6 +22,7 @@ stable / new / held. Shared LOOP patterns: `~/.claude/knowledge/harness-lessons.
 | floating-overlay | 2026-06-11 | feature | 5 | 1 | 0.0 | 0 |
 | design-patch v1.1.0 | 2026-06-12 | design-patch | 6 | **0** | **1.0** | 0 |
 | notification-popup v1.1.1 | 2026-06-12 | design-refinement | 2 (both P3) | **0** | **1.0** | 0 |
+| overlay text-containment v1.1.2 | 2026-06-12 | patch | 1 | **1** (render escape) | 1.0 | 0 |
 
 ## Read (trend)
 - **Escape-to-user 0.25 → 0.20 → 0.0 → 0.0** — trend real and monotonic; two consecutive zero-escape runs.
