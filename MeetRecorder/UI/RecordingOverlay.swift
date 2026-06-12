@@ -4,7 +4,7 @@ import AppKit
 // MARK: - Fixed overlay sizes (per the art-direction brief — no auto-size, no jitter)
 
 enum OverlaySize {
-    static let expanded  = CGSize(width: 248, height: 64)
+    static let expanded  = CGSize(width: 336, height: 64)
     static let collapsed = CGSize(width: 104, height: 30)
     static let toast     = CGSize(width: 280, height: 80)
 }
@@ -80,19 +80,29 @@ struct RecordingOverlayView: View {
                     .foregroundColor(paused ? DesignToken.warning : DesignToken.danger)
                 timerText
             }
-            CaptureModeChip(source: audioSource)
+            CaptureModeChip(source: audioSource, compact: true)
                 .opacity(paused ? 0.4 : 1)
 
             Spacer(minLength: DS.Space.xs)
 
+            // fixedSize + lineLimit so the labels hug their text and never wrap or
+            // get compressed by the HStack (the panel is sized to contain them).
             Button(paused ? "Resume" : "Pause") { recordingManager.togglePause() }
                 .buttonStyle(SecondaryButtonStyle())
+                .lineLimit(1)
+                .fixedSize()
                 .contentShape(Rectangle())
                 .accessibilityLabel(paused ? "Resume recording" : "Pause recording")
-            Button("Stop") { recordingManager.stopRecording() }
-                .buttonStyle(RecordButtonStyle())
-                .contentShape(Rectangle())
-                .accessibilityLabel("Stop recording")
+            // RecordButtonStyle has no built-in h-padding (it's full-width in the
+            // popover); add it on the label here so the compact pill isn't cramped.
+            Button { recordingManager.stopRecording() } label: {
+                Text("Stop").padding(.horizontal, DS.Space.sm)
+            }
+            .buttonStyle(RecordButtonStyle())
+            .lineLimit(1)
+            .fixedSize()
+            .contentShape(Rectangle())
+            .accessibilityLabel("Stop recording")
         }
         .padding(.horizontal, DS.Space.md)
         .accessibilityElement(children: .contain)

@@ -298,6 +298,11 @@ struct UpcomingEventCard: View {
 
 struct CaptureModeChip: View {
     let source: AudioSource
+    /// Compact uses the short label ("Both/Mic/System") — for the tight overlay,
+    /// where the full "Mic + System" label would overflow / wrap.
+    var compact: Bool = false
+
+    private var label: String { compact ? source.label : source.chipLabel }
 
     private var chipColor: Color {
         switch source {
@@ -324,9 +329,11 @@ struct CaptureModeChip: View {
                 .imageScale(.small)
                 .foregroundColor(chipColor)
                 .accessibilityHidden(true)
-            Text(source.chipLabel)
+            Text(label)
                 .font(DS.Font.caption)
                 .foregroundColor(DesignToken.fgPrimary)
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
         }
         .padding(.horizontal, DS.Space.sm)
         .padding(.vertical, DS.Space.xs)
@@ -334,6 +341,7 @@ struct CaptureModeChip: View {
             Capsule(style: .continuous)
                 .fill(chipBg)
         )
+        .fixedSize(horizontal: true, vertical: false)
         .accessibilityLabel("Capturing: \(source.chipLabel)")
     }
 }

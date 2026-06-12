@@ -74,6 +74,7 @@ their own** (they don't inherit from the popover root).
 - *Target-size note:* overlay/popover buttons are below 44px (accepted dense-format deviation; `.contentShape` mitigates) — see decision log.
 
 ## 4. Open design backlog
+- **Overlay should auto-size to content width** (robust fix) — the expanded bar is a fixed 336px sized for the longest label/state; a content-driven width would survive any future label/locale change without a re-measure. (deferred; current fix = fixed width + lineLimit + compact chip.)
 - **Focus-ring on overlay buttons** should use accent, not system blue — VERIFY in UAT; fix only if system-blue rings observed (P2-D, v1.1.0).
 - **HistoryRow completed/failed** — icon+color carries the signal (passes color-only rule); a tooltip/a11y label would strengthen it. (deferred)
 - **UpcomingEventCard empty state** — idle layout feels loose when no event; a light "No events today" ghost row would anchor it. (deferred)
@@ -121,6 +122,10 @@ their own** (they don't inherit from the popover root).
 ### 2026-06-12 — v1.1.0 patch: selected ModelCard gains a 1px accent stroke (new signature)
 **Decision:** the selected state = accent.0.12 fill **+ a 1px accent `strokeBorder`** (the "border-as-signal" move, reused from the panel border).
 **Why:** the fill-only wash was too subtle on dark — a first-time user could miss their selection. The stroke makes "I chose this" unmistakable for ~2 lines of code. Added as a protected signature move.
+
+### 2026-06-12 — v1.1.2 fix: overlay text containment (no wrap)
+**Decision:** expanded overlay 248→336px; CaptureModeChip gains a `compact` mode (short label "Both/Mic/System") used in the overlay; chip label + Pause/Stop labels get `lineLimit(1)` + `fixedSize`; Stop label gains sm h-padding (RecordButtonStyle has none — it's full-width in the popover).
+**Why:** the 248px bar was too narrow for dot+REC+timer+"System only"+Pause+Stop, so the HStack compressed and text wrapped ("Syste/m/only", "Pau/se"). Sized for the longest state (paused: "PAUSED"+"Resume"+"System") with slack. RENDER defect — escaped because the floating overlay was never screenshot in QA → added Gate-C "text containment (render-verify)" check.
 
 ### 2026-06-12 — CallNudgeView v2: three-row hierarchy + countdown hairline
 **Decision:** popup → 280×80; added a channelMic **eyebrow** row ("MIC ACTIVITY" labelCaps + mic.fill, 5.72:1) above the body; body made factual ("Meeting in progress. Record this session?"); added the **countdown hairline** (2px channelMic bar depleting on a bgHover track over the 8s auto-dismiss, reduce-motion → omitted); panel fade also reduce-motion gated in OverlayController.
