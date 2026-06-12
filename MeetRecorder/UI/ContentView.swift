@@ -317,13 +317,17 @@ struct CaptureModeChip: View {
 
     var body: some View {
         HStack(spacing: DS.Space.xs) {
+            // Channel COLOR rides on the icon + bg tint (the signature signal);
+            // the LABEL stays fgPrimary so it always clears WCAG AA — accent text
+            // on its own tint was only 3.11:1 (canon: legibility over colour-on-label).
             Image(systemName: source.systemImage)
                 .imageScale(.small)
+                .foregroundColor(chipColor)
                 .accessibilityHidden(true)
             Text(source.chipLabel)
                 .font(DS.Font.caption)
+                .foregroundColor(DesignToken.fgPrimary)
         }
-        .foregroundColor(chipColor)
         .padding(.horizontal, DS.Space.sm)
         .padding(.vertical, DS.Space.xs)
         .background(

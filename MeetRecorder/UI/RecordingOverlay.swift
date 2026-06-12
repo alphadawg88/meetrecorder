@@ -74,7 +74,10 @@ struct RecordingOverlayView: View {
                 Text(paused ? "PAUSED" : "REC")
                     .font(DesignToken.labelCaps())
                     .tracking(0.6)
-                    .foregroundColor(paused ? DesignToken.warning : DesignToken.fgSecondary)
+                    // Match the state: danger red for REC (like the dot), warning
+                    // amber for PAUSED — not neutral grey (the status label should
+                    // read at the weight of the state it names).
+                    .foregroundColor(paused ? DesignToken.warning : DesignToken.danger)
                 timerText
             }
             CaptureModeChip(source: audioSource)

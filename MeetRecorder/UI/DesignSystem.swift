@@ -371,7 +371,9 @@ struct StatusBadge: View {
 
         var bgColor: Color {
             switch self {
-            case .recording:  return DesignToken.danger.opacity(0.12)
+            // Recording uses a lighter tint (0.08) so the red label keeps its
+            // contrast — a 0.12 red tint lightens the bg and drops it to 4.49:1.
+            case .recording:  return DesignToken.danger.opacity(0.08)
             case .processing: return DesignToken.warning.opacity(0.12)
             case .done:       return DesignToken.success.opacity(0.12)
             }
