@@ -20,12 +20,12 @@ stable / new / held. Shared LOOP patterns: `~/.claude/knowledge/harness-lessons.
 | awareness + call-detect | 2026-06-11 | feature | 4 | 1 | 0.33 | n/a |
 | floating-overlay | 2026-06-11 | feature | 5 | 1 | 0.0 | 0 |
 | design-patch v1.1.0 | 2026-06-12 | design-patch | 6 | **0** | **1.0** | 0 |
+| notification-popup v1.1.1 | 2026-06-12 | design-refinement | 2 (both P3) | **0** | **1.0** | 0 |
 
 ## Read (trend)
-- **Escape-to-user 0.25 → 0.20 → 0.0** — the trend is real and monotonic. Run 3's NEW design-iteration gate
-  caught every design defect pre-ship.
-- **Hard-gate first-pass 0.33 → 0.0 → 1.0** — clean build + clean QA this run; the maturing guards front-load
-  defects to the design gate.
+- **Escape-to-user 0.25 → 0.20 → 0.0 → 0.0** — trend real and monotonic; two consecutive zero-escape runs.
+- **Hard-gate first-pass 0.33 → 0.0 → 1.0 → 1.0** — two consecutive clean-build + clean-QA runs; the maturing
+  guards front-load defects to the design gate. The design half of the loop is now stable-and-improving.
 - **L3/L4/L5 held a 3rd run** → L3/L4 are now CLOSED (provenance retained).
 - **One design class recurred** (indicator-as-label, both P1) — the only regressing cluster, now being codified
   into the Gate-C checklist. If it recurs after that, escalate to an automated lint.

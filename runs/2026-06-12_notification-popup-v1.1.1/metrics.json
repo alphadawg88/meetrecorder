@@ -1,0 +1,31 @@
+{
+  "$schema": "product-loop/metrics/v1",
+  "run_id": "2026-06-12_notification-popup-v1.1.1",
+  "project": "glyph-meetrecorder",
+  "kind": "design-refinement",
+  "stage_mask": ["0","2","3","4","7","9"],
+  "started": "2026-06-12",
+  "ended": "2026-06-12",
+  "note_on_data": "Reconstructed retro. Run 4. Notification-popup (CallNudgeView) design refinement; shipped v1.1.1. Promotion (Gate-C item 10) pre-authorized by the goal directive ('loop engineer so it catches this in future').",
+  "stages": {
+    "intake":      { "gate": "A", "passed": true, "first_pass": true, "note": "scope = refine the call-detected popup design + loop-engineer the catch" },
+    "design":      { "gate": "C", "passed": true, "first_pass": true, "note": "ux-designer refinement spec vs two-tier master → CallNudgeView v2 + countdown-hairline signature; EDGE VERDICT: ELEVATES" },
+    "build":       { "gate": "D", "passed": true, "first_pass": true, "note": "clean first try; L3 auto-regen + L4 SIGN-CHECK held (4th run)" },
+    "qa":          { "gate": "E", "passed": true, "first_pass": true, "note": "qa-editor 0 P0/P1/P2; 2 P3 (one applied: reduce-motion flag captured once; one deferred to UAT: 80px height margin)" },
+    "release":     { "gate": "G", "passed": "partial", "first_pass": true, "note": "v1.1.1 committed + tagged; main held" }
+  },
+  "defects": [
+    { "id": "D1", "severity": "P3", "title": "reduce-motion flag read live at dismiss (show/dismiss could differ if toggled mid-popup)", "layer": "BUILD", "born_stage": "build", "caught_stage": "qa", "escape_distance": 1, "root_cause": "flag not captured once", "lesson_ref": null },
+    { "id": "D2", "severity": "P3", "title": "80px toast height has ~8px margin; pathological button floor could clip", "layer": "DESIGN", "born_stage": "design", "caught_stage": "qa", "escape_distance": 1, "root_cause": "tight fixed size", "lesson_ref": null }
+  ],
+  "metrics": {
+    "defects_total": 2,
+    "defects_escaped_to_user": 0,
+    "escape_rate": 0.0,
+    "hard_gate_first_pass_rate": 1.0,
+    "rework_count": 0,
+    "known_class_recurrences": 0,
+    "promoted_guards_that_held": ["L3 auto-regen", "L4 signing-assert", "L5 destructive-intent"]
+  },
+  "notes": "Cleanest run yet: design-iteration gate produced an ELEVATING refinement, Gate E passed first try with only 2 P3 (one fixed, one UAT spot-check). Escape-to-user 0.0 (2nd consecutive). first-pass 1.0 (2nd consecutive). The 'loop engineer the catch' directive was fulfilled IN-RUN: Gate-C checklist item 10 (transient/interrupting panels) added + new 'countdown hairline' signature move. L3/L4/L5 held a 4th run."
+}
