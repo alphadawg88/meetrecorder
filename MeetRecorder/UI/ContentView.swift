@@ -288,7 +288,7 @@ struct UpcomingEventCard: View {
             }
             .buttonStyle(SecondaryButtonStyle())
         }
-        .padding(DS.Space.sm + 2) // 10px — spec: meeting-card internal padding
+        .padding(DS.Space.md) // 12px — on-grid card internal padding
         .background(DS.Color.surfaceSecondary)
         .clipShape(RoundedRectangle(cornerRadius: DS.Radius.md, style: .continuous))
     }
@@ -493,7 +493,7 @@ struct HistoryRow: View {
                     .foregroundColor(DS.Color.primary)
                     .lineLimit(1)
                 Text(record.startTime.formatted(date: .abbreviated, time: .shortened))
-                    .font(.system(size: 10).monospacedDigit())
+                    .font(DesignToken.caption().monospacedDigit())
                     .foregroundColor(DS.Color.secondary)
             }
 
@@ -547,7 +547,7 @@ struct DownloadProgressView: View {
                 ModelDownloadRow(label: shortName, state: models.llm)
             }
         }
-        .padding(DS.Space.sm + 2) // 10px — card internal padding
+        .padding(DS.Space.md) // 12px — on-grid card internal padding
         .background(
             RoundedRectangle(cornerRadius: DS.Radius.md, style: .continuous)
                 .fill(DS.Color.surfaceSecondary)
@@ -572,11 +572,11 @@ private struct ModelDownloadRow: View {
             if case .preparing(let frac) = state, let frac {
                 ProgressView(value: frac)
                     .progressViewStyle(.linear)
-                    .tint(Color(nsColor: .systemBlue))
+                    .tint(DesignToken.accent)
             } else if case .preparing(nil) = state {
                 ProgressView()
                     .progressViewStyle(.linear)
-                    .tint(Color(nsColor: .systemBlue))
+                    .tint(DesignToken.accent)
             }
         }
     }
@@ -586,7 +586,7 @@ private struct ModelDownloadRow: View {
         case .preparing(let frac):
             if let frac {
                 Text("\(Int(frac * 100))%")
-                    .font(.system(size: 10).monospacedDigit())
+                    .font(DesignToken.caption().monospacedDigit())
                     .foregroundColor(DS.Color.secondary)
             } else {
                 Text("Downloading…")

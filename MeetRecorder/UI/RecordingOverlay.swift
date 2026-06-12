@@ -145,7 +145,10 @@ struct RecordingOverlayView: View {
     // MARK: Auto-collapse (6s idle; never while paused or hovering)
 
     private func expand() {
-        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.15)) { expanded = true }
+        // Instant swap (no content animation): the SwiftUI content and the NSPanel
+        // frame (onChange → requestSize) change together, so neither clips the other.
+        // An animated content change inside an instantly-resized panel desyncs.
+        expanded = true
         scheduleAutoCollapse()
     }
 
@@ -154,7 +157,7 @@ struct RecordingOverlayView: View {
         guard !paused, !hovering else { return }
         let work = DispatchWorkItem {
             guard !hovering, !paused else { return }
-            withAnimation(reduceMotion ? nil : .easeOut(duration: 0.15)) { expanded = false }
+            expanded = false
         }
         collapseWork = work
         DispatchQueue.main.asyncAfter(deadline: .now() + 6, execute: work)

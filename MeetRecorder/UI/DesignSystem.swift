@@ -126,6 +126,7 @@ enum DS {
     enum Color {
         static let primary          = DesignToken.fgPrimary
         static let secondary        = DesignToken.fgSecondary
+        static let tertiary         = DesignToken.fgTertiary
         static let recording        = DesignToken.danger
         static let recordingPressed = DesignToken.danger.opacity(0.80)
         static let success          = DesignToken.success
@@ -289,10 +290,12 @@ struct ModelCard: View {
                         Text(tag)
                             .font(DesignToken.labelCaps())
                             .tracking(0.6)
-                            .padding(.horizontal, 5)
+                            .padding(.horizontal, DesignToken.Space.xs)
                             .padding(.vertical, 1)
                             .background(DesignToken.accent.opacity(0.12))
-                            .foregroundColor(DesignToken.accent)
+                            // Accent rides the tint; label is fgPrimary so it clears
+                            // AA (accent-on-tint was 3.11:1). Canon: indicator ≠ label.
+                            .foregroundColor(DesignToken.fgPrimary)
                             .clipShape(Capsule())
                     }
                     Text(size)
@@ -329,9 +332,13 @@ struct ModelCard: View {
             .padding(DesignToken.Space.sm)
             .background(
                 RoundedRectangle(cornerRadius: DesignToken.Radius.sm + 2, style: .continuous)
-                    .fill(isSelected
-                          ? DesignToken.accent.opacity(0.12)
-                          : Color.clear)
+                    .fill(isSelected ? DesignToken.accent.opacity(0.12) : Color.clear)
+                    // Selected gains a 1px accent stroke (the "border-as-signal"
+                    // signature move) so "I chose this" is unmistakable on dark.
+                    .overlay(
+                        RoundedRectangle(cornerRadius: DesignToken.Radius.sm + 2, style: .continuous)
+                            .strokeBorder(isSelected ? DesignToken.accent : Color.clear, lineWidth: 1)
+                    )
             )
             .contentShape(Rectangle())
             .onTapGesture { selected = id }
@@ -342,7 +349,7 @@ struct ModelCard: View {
                         .controlSize(.mini)
                         .scaleEffect(0.7)
                     Text(progressText)
-                        .font(.system(size: 10).monospacedDigit())
+                        .font(DesignToken.caption().monospacedDigit())
                         .foregroundColor(DesignToken.fgSecondary)
                 }
                 .padding(.horizontal, DesignToken.Space.sm)

@@ -53,6 +53,10 @@ struct HelpView: View {
             Spacer()
         }
         .frame(width: 400, height: 420)
+        // Sheets don't inherit the popover's scheme/tint — set them here too
+        // (dark-first absolute signature move).
+        .preferredColorScheme(.dark)
+        .tint(DesignToken.accent)
     }
 
     private func helpSection(title: String, text: String) -> some View {
