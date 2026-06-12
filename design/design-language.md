@@ -72,10 +72,12 @@ their own** (they don't inherit from the popover root).
 - **CallNudgeView** — 280×60 toast, 8s auto-dismiss, never during recording; `mic.fill` channelMic icon; Record(primary)/Not now(ghost).
 - *Target-size note:* overlay/popover buttons are below 44px (accepted dense-format deviation; `.contentShape` mitigates) — see decision log.
 
-## 4. Open design backlog (overlay v2)
-- Sub-44px targets — revisit whether RecordButtonStyle reaches 36–40px without breaking overlay fixed sizes.
-- Panel-resize vs SwiftUI-animation desync on collapse/expand (clipping risk) — spec simultaneous 0.15s transition or a fixed-frame panel that clips its own content.
-- Focus-ring on overlay buttons should use accent, not system blue — verify.
+## 4. Open design backlog
+- **Focus-ring on overlay buttons** should use accent, not system blue — VERIFY in UAT; fix only if system-blue rings observed (P2-D, v1.1.0).
+- **HistoryRow completed/failed** — icon+color carries the signal (passes color-only rule); a tooltip/a11y label would strengthen it. (deferred)
+- **UpcomingEventCard empty state** — idle layout feels loose when no event; a light "No events today" ghost row would anchor it. (deferred)
+- **ProcessingView stage text** — uncontrolled backend string; define canonical stage labels + max length → copywriter. (deferred)
+- *Closed v1.1.0:* sub-44px target deviation (logged §5); collapse/expand animation desync (instant synced swap).
 
 ## 5. Accrued design decisions (append-only)
 
@@ -107,6 +109,18 @@ their own** (they don't inherit from the popover root).
 **Decision:** scale 1.4 / opacity 0.6 / 1.8s easeInOut / reduce-motion gate.
 **Why:** reads "live" not "urgent"; <1s = anxiety, >1.5 scale = eye-pull; reduce-motion mandatory (WCAG 2.3.3).
 
-### 2026-06-12 — Chip label legibility + REC/badge state-color (run-3 audit)
+### 2026-06-12 — Chip label legibility + REC/badge state-color
 **Decision:** chip label → fgPrimary (channel color on icon+tint only); recording StatusBadge tint 0.12→0.08 (4.74:1); overlay "REC" label → danger red (was grey).
 **Why:** accent-on-tint label was 3.11:1 (fail) — superseded the earlier "accept as UI-component exception"; an AA miss is fixed, not grandfathered. Status labels read at the weight of the state they name.
+
+### 2026-06-12 — v1.1.0 patch: ModelCard tag follows the indicator≠label rule
+**Decision:** `ModelCard` tag `Text` → `fgPrimary` (accent stays on the capsule tint + selection circle), not accent.
+**Why:** accent-on-accent-tint = 3.11:1 (AA fail) — the SAME class as the chip label. Codified into the Gate-C checklist this run so it can't recur a 3rd time.
+
+### 2026-06-12 — v1.1.0 patch: selected ModelCard gains a 1px accent stroke (new signature)
+**Decision:** the selected state = accent.0.12 fill **+ a 1px accent `strokeBorder`** (the "border-as-signal" move, reused from the panel border).
+**Why:** the fill-only wash was too subtle on dark — a first-time user could miss their selection. The stroke makes "I chose this" unmistakable for ~2 lines of code. Added as a protected signature move.
+
+### 2026-06-12 — Sub-44px dense-format target deviation: formally CLOSED
+**Decision:** RecordButtonStyle 32px (popover full-width 360px tap area) + compact overlay buttons accepted; `.contentShape(Rectangle())` mitigation in place. Backlog item closed.
+**Why:** full-width tap surface compensates in the popover; the overlay's compact size is a deliberate unobtrusive-first trade-off. Not worth growing the overlay fixed sizes.

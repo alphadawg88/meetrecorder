@@ -1,0 +1,35 @@
+{
+  "$schema": "product-loop/metrics/v1",
+  "run_id": "2026-06-12_design-patch-v1.1.0",
+  "project": "glyph-meetrecorder",
+  "kind": "design-patch",
+  "stage_mask": ["0","2","3","4","7","9"],
+  "started": "2026-06-12",
+  "ended": "2026-06-12",
+  "note_on_data": "Reconstructed retro. 3rd product-loop run; first to exercise the new design-iteration Gate C end-to-end. Shipped v1.1.0.",
+  "stages": {
+    "intake":      { "gate": "A", "passed": true,  "first_pass": true,  "note": "scope = design-patch + new version" },
+    "design":      { "gate": "C", "passed": true,  "first_pass": true,  "note": "ux-designer Gate-C audit vs two-tier master → prioritized patch set + edge verdict (positive)" },
+    "build":       { "gate": "D", "passed": true,  "first_pass": true,  "note": "clean first try (no new files); L3 auto-regen + L4 SIGN-CHECK held (3rd run)" },
+    "qa":          { "gate": "E", "passed": true,  "first_pass": true,  "note": "qa-editor 0 P0/P1; 1 intentional P2 (tag 5→4px on-grid)" },
+    "release":     { "gate": "G", "passed": "partial", "first_pass": true, "note": "v1.1.0 committed + tagged; main still held" }
+  },
+  "defects": [
+    { "id": "P1-A", "severity": "P1", "title": "ModelCard tag label = accent on accent tint (3.11:1 AA fail)", "layer": "DESIGN", "born_stage": "pre-existing", "caught_stage": "design", "escape_distance": 0, "root_cause": "indicator/accent color used as label text", "lesson_ref": "design:indicator-as-label", "recurrence": true },
+    { "id": "P1-B", "severity": "P1", "title": "HelpView sheet missing .preferredColorScheme(.dark)+.tint", "layer": "DESIGN", "born_stage": "pre-existing", "caught_stage": "design", "escape_distance": 0, "root_cause": "sheet isolation; dark contract not re-applied", "lesson_ref": null },
+    { "id": "P2-A", "severity": "P2", "title": "ModelDownloadRow progress tint hardcoded systemBlue", "layer": "DESIGN", "born_stage": "pre-existing", "caught_stage": "design", "escape_distance": 0, "root_cause": "off-token color", "lesson_ref": null },
+    { "id": "P2-B", "severity": "P2", "title": "Two off-grid 10px card paddings", "layer": "DESIGN", "born_stage": "pre-existing", "caught_stage": "design", "escape_distance": 0, "root_cause": "magic-number padding off the 8px grid", "lesson_ref": null },
+    { "id": "P2-C", "severity": "P2", "title": "Overlay collapse/expand frame↔content animation desync", "layer": "DESIGN", "born_stage": "build(run-2)", "caught_stage": "design", "escape_distance": 0, "root_cause": "animated content inside instantly-resized panel", "lesson_ref": null },
+    { "id": "P2-E", "severity": "P2", "title": "Three raw .system(size:10) instead of caption token", "layer": "DESIGN", "born_stage": "pre-existing", "caught_stage": "design", "escape_distance": 0, "root_cause": "off-scale raw font", "lesson_ref": null }
+  ],
+  "metrics": {
+    "defects_total": 6,
+    "defects_escaped_to_user": 0,
+    "escape_rate": 0.0,
+    "hard_gate_first_pass_rate": 1.0,
+    "rework_count": 0,
+    "known_class_recurrences": 1,
+    "promoted_guards_that_held": ["L3 auto-regen", "L4 signing-assert", "L5 destructive-intent"]
+  },
+  "notes": "HEADLINE: the NEW design-iteration Gate C (built this session) worked end-to-end — surfaced a prioritized patch set + an elevation, caught a RECURRING design class (indicator-as-label, 2nd time), and 0 defects escaped to the user. Escape rate 0.25→0.20→0.0 (best). Hard-gate first-pass 1.0 (clean build + clean QA). L3/L4/L5 held a 3rd run. Contrast all measured (WCAG calc)."
+}
