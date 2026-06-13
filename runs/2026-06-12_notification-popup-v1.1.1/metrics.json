@@ -25,7 +25,7 @@
     "hard_gate_first_pass_rate": 1.0,
     "rework_count": 0,
     "known_class_recurrences": 0,
-    "promoted_guards_that_held": ["L3 auto-regen", "L4 signing-assert", "L5 destructive-intent"]
+    "promoted_guards_that_held": ["L3 auto-regen", "L4 signing-assert", "L5 destructive-intent", "L8", "design:button-fill-contrast", "design:indicator-as-label"]
   },
   "notes": "Cleanest run yet: design-iteration gate produced an ELEVATING refinement, Gate E passed first try with only 2 P3 (one fixed, one UAT spot-check). Escape-to-user 0.0 (2nd consecutive). first-pass 1.0 (2nd consecutive). The 'loop engineer the catch' directive was fulfilled IN-RUN: Gate-C checklist item 10 (transient/interrupting panels) added + new 'countdown hairline' signature move. L3/L4/L5 held a 4th run."
 }

@@ -17,7 +17,7 @@
     "hard_gate_first_pass_rate": 1.0,
     "rework_count": 1,
     "known_class_recurrences": 1,
-    "promoted_guards_that_held": ["L3 auto-regen", "L4 signing-assert", "L5 destructive-intent"]
+    "promoted_guards_that_held": ["L3 auto-regen", "L4 signing-assert", "L5 destructive-intent", "L8", "design:button-fill-contrast", "design:indicator-as-label"]
   },
   "notes": "SYSTEMIC FINDING: this is the 2nd RENDER defect to reach the user (after the v1.1.1 height P3) — both because the floating overlay is NEVER rendered/screenshot in QA. qa-editor is source-level; the main loop can't headlessly screenshot an NSPanel; the USER is currently the only render check (harness H2). Caught + fixed cleanly once reported; the fix run built+QA'd first-pass. Promotion: Gate-C 'text containment (RENDER-verify)' check added. Open: overlay auto-size-to-content (robust follow-up)."
 }

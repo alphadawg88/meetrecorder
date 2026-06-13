@@ -1,0 +1,118 @@
+{
+  "verdict": "LOOP-P0: F1 escape rate trend is rising",
+  "runs_count": 5,
+  "date_generated": "2026-06-13T11:33:04.398243",
+  "f1": {
+    "escape_rate_series": [
+      0.25,
+      0.2,
+      0.0,
+      0.0,
+      1.0
+    ],
+    "trend": "rising",
+    "mean_escape_distance": 1,
+    "max_escape_distance": 4
+  },
+  "f2": {
+    "catch_by_gate": {
+      "E": 8,
+      "D": 1,
+      "ESCAPED": 2,
+      "F": 1,
+      "C": 6
+    },
+    "gate_first_pass_rates": {
+      "A": 1.0,
+      "B": 1.0,
+      "C": 0.75,
+      "D": 0.5,
+      "E": 0.5,
+      "F": 1.0,
+      "G": 1.0
+    },
+    "toothless_gates": [
+      "A",
+      "B",
+      "G"
+    ]
+  },
+  "f3": {
+    "recurrence_after_promotion": [],
+    "held_streaks": {
+      "L3": 4,
+      "L4": 4,
+      "L5": 4,
+      "L8": 3,
+      "design:button-fill-contrast": 3,
+      "design:indicator-as-label": 2
+    },
+    "instrumentation_gap": [
+      "render-containment"
+    ]
+  },
+  "f4": {
+    "blind_spot_candidates": [
+      {
+        "run_id": "2026-06-11_awareness-calldetect",
+        "defect_id": "D4",
+        "severity": "P1",
+        "title": "Signing dual-cert DR flip \u2192 TCC permission re-prompt loop",
+        "layer": "BUILD",
+        "caught_stage": "operate",
+        "gate": "ESCAPED",
+        "recurrence": true
+      },
+      {
+        "run_id": "2026-06-11_floating-overlay",
+        "defect_id": "D5",
+        "severity": "P2",
+        "title": "White Stop label on #FF4444 = 3.41:1 (fails AA)",
+        "layer": "DESIGN",
+        "caught_stage": "uat",
+        "gate": "F",
+        "recurrence": false
+      },
+      {
+        "run_id": "2026-06-12_overlay-text-containment-v1.1.2",
+        "defect_id": "D1",
+        "severity": "P1",
+        "title": "Expanded overlay text wraps \u2014 'System only' \u2192 3 lines, 'Pause' \u2192 2 lines",
+        "layer": "DESIGN",
+        "caught_stage": "operate(user UAT)",
+        "gate": "ESCAPED",
+        "recurrence": false
+      }
+    ]
+  },
+  "f5": {
+    "calibration_flags": [
+      {
+        "run_id": "2026-06-12_overlay-text-containment-v1.1.2",
+        "hard_gate_first_pass_rate": 1.0,
+        "defects_escaped_to_user": 1,
+        "note": "Internal gates clean but user hit a defect \u2014 verify bar or escape belongs to prior run."
+      }
+    ]
+  },
+  "f6": {
+    "rework_counts": [
+      3,
+      3,
+      0,
+      0,
+      1
+    ],
+    "rework_instrumented": true,
+    "ceremony_series": [
+      0,
+      3,
+      5,
+      6,
+      6
+    ],
+    "bloat_flag": true,
+    "escape_trend": "rising"
+  },
+  "silent_drops": []
+}

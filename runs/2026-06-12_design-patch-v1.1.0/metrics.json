@@ -29,7 +29,7 @@
     "hard_gate_first_pass_rate": 1.0,
     "rework_count": 0,
     "known_class_recurrences": 1,
-    "promoted_guards_that_held": ["L3 auto-regen", "L4 signing-assert", "L5 destructive-intent"]
+    "promoted_guards_that_held": ["L3 auto-regen", "L4 signing-assert", "L5 destructive-intent", "L8", "design:button-fill-contrast"]
   },
   "notes": "HEADLINE: the NEW design-iteration Gate C (built this session) worked end-to-end — surfaced a prioritized patch set + an elevation, caught a RECURRING design class (indicator-as-label, 2nd time), and 0 defects escaped to the user. Escape rate 0.25→0.20→0.0 (best). Hard-gate first-pass 1.0 (clean build + clean QA). L3/L4/L5 held a 3rd run. Contrast all measured (WCAG calc)."
 }
