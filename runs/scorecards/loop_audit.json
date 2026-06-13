@@ -1,23 +1,24 @@
 {
   "verdict": "LOOP-P0: F1 escape rate trend is rising",
-  "runs_count": 5,
-  "date_generated": "2026-06-13T11:33:04.398243",
+  "runs_count": 6,
+  "date_generated": "2026-06-13T14:55:09.981707",
   "f1": {
     "escape_rate_series": [
       0.25,
       0.2,
       0.0,
       0.0,
-      1.0
+      1.0,
+      0.0
     ],
     "trend": "rising",
-    "mean_escape_distance": 1,
+    "mean_escape_distance": 0.79,
     "max_escape_distance": 4
   },
   "f2": {
     "catch_by_gate": {
-      "E": 8,
-      "D": 1,
+      "E": 9,
+      "D": 6,
       "ESCAPED": 2,
       "F": 1,
       "C": 6
@@ -26,8 +27,8 @@
       "A": 1.0,
       "B": 1.0,
       "C": 0.75,
-      "D": 0.5,
-      "E": 0.5,
+      "D": 0.4,
+      "E": 0.6,
       "F": 1.0,
       "G": 1.0
     },
@@ -40,16 +41,15 @@
   "f3": {
     "recurrence_after_promotion": [],
     "held_streaks": {
-      "L3": 4,
-      "L4": 4,
-      "L5": 4,
-      "L8": 3,
-      "design:button-fill-contrast": 3,
-      "design:indicator-as-label": 2
+      "L3": 5,
+      "L4": 5,
+      "L5": 5,
+      "L8": 4,
+      "design:button-fill-contrast": 4,
+      "design:indicator-as-label": 3,
+      "render-containment": 1
     },
-    "instrumentation_gap": [
-      "render-containment"
-    ]
+    "instrumentation_gap": []
   },
   "f4": {
     "blind_spot_candidates": [
@@ -101,7 +101,8 @@
       3,
       0,
       0,
-      1
+      1,
+      6
     ],
     "rework_instrumented": true,
     "ceremony_series": [
@@ -109,7 +110,8 @@
       3,
       5,
       6,
-      6
+      6,
+      7
     ],
     "bloat_flag": true,
     "escape_trend": "rising"

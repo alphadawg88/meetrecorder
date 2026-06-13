@@ -7,7 +7,7 @@ stable / new / held. Shared LOOP patterns: `~/.claude/knowledge/harness-lessons.
 
 | Cluster | Runs seen | Recur | Worst escape | Trend | Note |
 |---|---|---|---|---|---|
-| **Render-only defect escaped (overlay never screenshot in QA)** | run4 (80px height P3), run5 (text wrap) | 2 | **to user** | **regressing → systemic** | Source/contrast QA can't see layout/wrap/clip; the floating NSPanel is never rendered in QA → the user is the only render check (harness H2). Gate-C "text containment (render-verify)" added; real fix = a render snapshot in QA. |
+| **Render-only defect escaped (overlay never screenshot in QA)** | run4 (80px height P3), run5 (text wrap) | 2 | **to user** | **PROMOTED ✓ (render gate built run6)** | Source/contrast QA can't see layout/wrap/clip; the floating NSPanel is never rendered in QA → the user was the only render check (harness H2). Gate-C "text containment (render-verify)" added run5; **run6 built the enforced fix** — `GlyphTests/OverlaySnapshotTests.swift` (containment + smoke + regression), wired into `_build_check.sh` Gate-E. **Guard proven to fire** (overlay→248 ⇒ 3 tests fail "needs 303pt"). Awaiting first live catch. |
 | **Indicator/accent color used as a LABEL** (design) | run2 (chip), run3 (ModelCard tag) | 2 | caught at design gate | **promoted ✓** | Both P1, 3.11:1. Gate-C checklist check added run3; held since. |
 | **Build-tooling signing DR flip** (L4) | run1; held run2, run3 | 2 | — | **held ✓✓** | Promoted run1; held twice. CLOSED. |
 | **New file not registered** (L3) | run1; held run2, run3 | 1 | — | **held ✓✓** | Promoted run1; held twice. CLOSED. |
@@ -23,9 +23,10 @@ stable / new / held. Shared LOOP patterns: `~/.claude/knowledge/harness-lessons.
 | design-patch v1.1.0 | 2026-06-12 | design-patch | 6 | **0** | **1.0** | 0 |
 | notification-popup v1.1.1 | 2026-06-12 | design-refinement | 2 (both P3) | **0** | **1.0** | 0 |
 | overlay text-containment v1.1.2 | 2026-06-12 | patch | 1 | **1** (render escape) | 1.0 | 0 |
+| render-snapshot-eval | 2026-06-13 | test-infra | 6 (all engine-constraint, build-caught) | **0** | 0.67 | 0 |
 
 ## Read (trend)
-- **Escape-to-user 0.25 → 0.20 → 0.0 → 0.0** — trend real and monotonic; two consecutive zero-escape runs.
+- **Escape-to-user 0.25 → 0.20 → 0.0 → 0.0 → 1.0 → 0.0** — the run5 spike was the v1.1.2 render escape (born run2, surfaced run5); run6 recovered to 0 AND added the enforced render gate. **CAVEAT (open, human-gated):** `loop_audit.py`'s F1 trend classifier (linear fit) still reads this spike-and-recover series as "rising" → a LOOP-P0 verdict. The honest read is "one historical escape, recovered, now gated." A more robust trend signal (e.g. latest-vs-baseline, or outlier-tolerant) is PROPOSED — not auto-applied (the loop never tunes its own ship rule without human confirm).
 - **Hard-gate first-pass 0.33 → 0.0 → 1.0 → 1.0** — two consecutive clean-build + clean-QA runs; the maturing
   guards front-load defects to the design gate. The design half of the loop is now stable-and-improving.
 - **L3/L4/L5 held a 3rd run** → L3/L4 are now CLOSED (provenance retained).

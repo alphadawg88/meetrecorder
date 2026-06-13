@@ -20,8 +20,9 @@ Evals for the workflow, not the app.
 | 2026-06-12_design-patch-v1.1.0 | 0.00% | 📈 |
 | 2026-06-12_notification-popup-v1.1.1 | 0.00% | 📈 |
 | 2026-06-12_overlay-text-containment-v1.1.2 | 100.00% | 📈 |
+| 2026-06-13_render-snapshot-eval | 0.00% | 📈 |
 
-**Trend:** rising | **Mean escape distance:** 1 | **Max:** 4
+**Trend:** rising | **Mean escape distance:** 0.79 | **Max:** 4
 
 ## F2: Gate Efficacy
 
@@ -30,8 +31,8 @@ Evals for the workflow, not the app.
 | A | 0 | 100.0% | ⚠ YES |
 | B | 0 | 100.0% | ⚠ YES |
 | C | 6 | 75.0% | No |
-| D | 1 | 50.0% | No |
-| E | 8 | 50.0% | No |
+| D | 6 | 40.0% | No |
+| E | 9 | 60.0% | No |
 | ESCAPED | 2 | − | No |
 | F | 1 | 100.0% | No |
 | G | 0 | 100.0% | ⚠ YES |
@@ -40,12 +41,13 @@ Evals for the workflow, not the app.
 
 | Guard | Held Streak |
 |-------|-------------|
-| L3 | 4 |
-| L4 | 4 |
-| L5 | 4 |
-| L8 | 3 |
-| design:button-fill-contrast | 3 |
-| design:indicator-as-label | 2 |
+| L3 | 5 |
+| L4 | 5 |
+| L5 | 5 |
+| L8 | 4 |
+| design:button-fill-contrast | 4 |
+| design:indicator-as-label | 3 |
+| render-containment | 1 |
 
 ## F4: Blind-Spot Candidates (Human Confirm)
 
@@ -70,20 +72,15 @@ Evals for the workflow, not the app.
 | Run 2 | 0 |
 | Run 3 | 0 |
 | Run 4 | 1 |
+| Run 5 | 6 |
 
-**Ceremony series:** [0, 3, 5, 6, 6] (distinct promoted guards)
+**Ceremony series:** [0, 3, 5, 6, 6, 7] (distinct promoted guards)
 **Bloat flag:** 🚩 YES — growing ceremony, flat/rising escape
 **Escape trend:** rising
-
-## Instrumentation Gaps (F3)
-
-Lessons mentioned in defects but never in `promoted_guards_that_held` (invisible to audit):
-- render-containment
 
 ## Recommendations
 
 - **Gate strength review:** escape rate is rising; audit internal gate criteria.
 - **Gate audit:** A, B, G are toothless (100% first-pass, 0 catches); verify scope or merge upstream.
-- **Guard visibility:** 1 lesson(s) not instrumented in promoted_guards_that_held; add explicit flag in next run.
 - **Blind-spot audit:** 3 candidate(s); verify if internal gates should have caught them.
 - **Ceremony review:** guard count growing but escape rate flat/rising; trim or tighten existing guards.
