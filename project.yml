@@ -26,6 +26,9 @@ targets:
         INFOPLIST_KEY_NSCalendarsUsageDescription: "Glyph reads your calendar to detect meetings and offer recording reminders."
         INFOPLIST_KEY_NSAppleEventsUsageDescription: "Glyph uses Apple Events to interact with system audio."
         ENABLE_HARDENED_RUNTIME: YES
+        # Emit a testable Glyph.swiftmodule so GlyphTests can `@testable import Glyph`
+        # (independent of optimization level; required for the overlay snapshot eval).
+        ENABLE_TESTABILITY: YES
     entitlements:
       path: MeetRecorder/Glyph.entitlements
       properties:
@@ -41,6 +44,34 @@ targets:
         product: MLXLLM
       - package: mlx-swift-lm
         product: MLXLMCommon
+  GlyphTests:
+    type: bundle.unit-test
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - GlyphTests
+    dependencies:
+      # Depend ONLY on the host app — the tests resolve Glyph's internal symbols AND
+      # all package symbols (WhisperKit/MLX) from the host binary via BUNDLE_LOADER.
+      # Re-listing the packages here makes the bundle re-link them without their full
+      # transitive graph (Hub/swift-transformers) → link failure.
+      - target: Glyph
+    settings:
+      base:
+        SWIFT_VERSION: "5.0"
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_NAME: GlyphTests
+        PRODUCT_MODULE_NAME: GlyphTests
+        PRODUCT_BUNDLE_IDENTIFIER: com.alfredwong.glyph.tests
+        # Host the tests in the Glyph app so `@testable` internal symbols resolve at
+        # link time against the host binary (which is built with ENABLE_TESTABILITY).
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Glyph.app/Contents/MacOS/Glyph"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+        # The .xctest bundle is dlopen'd INTO the host app process, so it must share
+        # the host's signing identity — a different Team ID (e.g. ad-hoc) makes the
+        # loader reject it ("different Team IDs"). Match the app's "Glyph Local Signing".
+        CODE_SIGN_IDENTITY: "Glyph Local Signing"
+        CODE_SIGN_STYLE: Manual
 packages:
   KeyboardShortcuts:
     url: https://github.com/sindresorhus/KeyboardShortcuts
@@ -51,3 +82,12 @@ packages:
   mlx-swift-lm:
     url: https://github.com/ml-explore/mlx-swift-lm
     minorVersion: 2.30.6   # 2.30.x pins swift-transformers 1.1.x to match WhisperKit 0.18
+schemes:
+  Glyph:
+    build:
+      targets:
+        Glyph: all
+        GlyphTests: [test]
+    test:
+      targets:
+        - GlyphTests

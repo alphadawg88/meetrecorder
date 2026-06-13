@@ -27,6 +27,7 @@ Secrets.swift
 
 # Swift Package Manager
 .build/
+.build_dd/
 Package.resolved
 
 # IDE
