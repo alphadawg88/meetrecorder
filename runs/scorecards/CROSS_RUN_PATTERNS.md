@@ -26,7 +26,7 @@ stable / new / held. Shared LOOP patterns: `~/.claude/knowledge/harness-lessons.
 | render-snapshot-eval | 2026-06-13 | test-infra | 6 (all engine-constraint, build-caught) | **0** | 0.67 | 0 |
 
 ## Read (trend)
-- **Escape-to-user 0.25 → 0.20 → 0.0 → 0.0 → 1.0 → 0.0** — the run5 spike was the v1.1.2 render escape (born run2, surfaced run5); run6 recovered to 0 AND added the enforced render gate. **CAVEAT (open, human-gated):** `loop_audit.py`'s F1 trend classifier (linear fit) still reads this spike-and-recover series as "rising" → a LOOP-P0 verdict. The honest read is "one historical escape, recovered, now gated." A more robust trend signal (e.g. latest-vs-baseline, or outlier-tolerant) is PROPOSED — not auto-applied (the loop never tunes its own ship rule without human confirm).
+- **Escape-to-user 0.25 → 0.20 → 0.0 → 0.0 → 1.0 → 0.0** — the run5 spike was the v1.1.2 render escape (born run2, surfaced run5); run6 recovered to 0 AND added the enforced render gate. **Verdict: PASS.** The earlier "rising → LOOP-P0" was a trend-classifier artifact (least-squares fit dominated by the lone spike); **RESOLVED 2026-06-13 (human-gated):** `loop_audit.py` now uses the **Theil-Sen** estimator (median of pairwise slopes, outlier-resistant) → this series reads "falling" while a genuine sustained rise still trips LOOP-P0 (verified `[0,.1,.2,.3,.4]`→rising). Not a bar-loosening: the discriminating power is preserved, only the spike-and-recover is correctly read.
 - **Hard-gate first-pass 0.33 → 0.0 → 1.0 → 1.0** — two consecutive clean-build + clean-QA runs; the maturing
   guards front-load defects to the design gate. The design half of the loop is now stable-and-improving.
 - **L3/L4/L5 held a 3rd run** → L3/L4 are now CLOSED (provenance retained).
